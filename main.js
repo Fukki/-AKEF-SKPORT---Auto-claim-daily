@@ -4,7 +4,7 @@ const profiles = [
 		skGameRole: "xxxxxxxxxxxxxxxxxxxxx",
 		platform: "3",
 		vName: "1.0.0",
-		accountName: "ㅇㅅㅇ"
+		accountName: "Account - 1"
 	}
 ];
 
