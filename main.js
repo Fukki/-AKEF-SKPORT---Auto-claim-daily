@@ -51,7 +51,7 @@ const Settings = {
 		'Sec-Fetch-Site': 'same-site'
 	},
 	chunkSize: 20,
-	discordColumn: 2,
+	discordColumn: 3,
 	successCodes: new Set([0, 10001])
 };
 
