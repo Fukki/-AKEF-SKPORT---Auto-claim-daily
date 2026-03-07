@@ -50,13 +50,15 @@ const Settings = {
 		'Sec-Fetch-Mode': 'cors',
 		'Sec-Fetch-Site': 'same-site'
 	},
-	chunkSize: Math.min(profiles.length, 50),
+	chunkSize: 20,
+	discordColumn: 2,
 	successCodes: new Set([0, 10001])
 };
 
 function main() {
 	if (!profiles?.length) return [];
 	const payloads = profiles.map(p => ({ platform: p.platform, vName: p.vName, role: p.skGameRole }));
+	const profilesSize = profiles.length;
 	const refreshReqs = profiles.map(p => ({
 		url: Settings.endpoints.refresh,
 		method: 'get',
@@ -71,15 +73,15 @@ function main() {
 			Referer: Settings.defaultHeaders.referer
 		}
 	}));
-	const refreshRes = chunkedFetchAll(refreshReqs);
+	const refreshRes = chunkedFetchAll(refreshReqs, profilesSize);
 	const tokens = refreshRes.map(r => {
 		const j = safeParse(r.getContentText && r.getContentText());
 		return j?.code === 0 && j?.data?.token ? j.data.token : '';
 	});
-	while (tokens.length < profiles.length) tokens.push('');
+	while (tokens.length < profilesSize) tokens.push('');
 	const tsInit = String(Math.floor(Date.now() / 1000));
 	const attendReqs = profiles.map((p, i) => buildAttendRequest(p, payloads[i], tokens[i] || '', tsInit));
-	let rawResponses = chunkedFetchAll(attendReqs);
+	let rawResponses = chunkedFetchAll(attendReqs, profilesSize);
 	const responsesWithMeta = rawResponses.map(r => {
 		let txt = '';
 		let j = null;
@@ -96,13 +98,14 @@ function main() {
 	const retryCfg = Settings.retry;
 	if (retryCfg.max > 1) {
 		let failedIdx = getFailedIdxFromMeta(responsesWithMeta);
-		for (let attempt = 1; failedIdx.length && attempt < retryCfg.max; attempt++) {
+		const failedIdxSize = failedIdx.length;
+		for (let attempt = 1; failedIdxSize && attempt < retryCfg.max; attempt++) {
 			Utilities.sleep(retryCfg.initialBackoffMs * Math.pow(2, attempt - 1));
 			const ts = String(Math.floor(Date.now() / 1000));
 			const batchReqs = failedIdx.map(i => buildAttendRequest(profiles[i], payloads[i], tokens[i] || '', ts));
 			let batchRes = [];
 			try {
-				batchRes = chunkedFetchAll(batchReqs);
+				batchRes = chunkedFetchAll(batchReqs, failedIdxSize);
 				batchRes.forEach((br, k) => {
 					const idx = failedIdx[k];
 					let txt = '', j = null, code = null;
@@ -160,7 +163,7 @@ function main() {
 	return results;
 }
 
-function discordPost(data, colCount = 2) {
+function discordPost(data, colCount = Settings.discordColumn) {
 	const rows = Array.isArray(data) ? data : [data];
 	const allSuccess = rows.every(r => r.success);
 	const fields = rows.flatMap((r, i) => [
@@ -191,7 +194,7 @@ function discordPost(data, colCount = 2) {
 	}));
 	if (requests.length === 0) return;
 	try {
-		chunkedFetchAll(requests, discordApp.length);
+		chunkedFetchAll(requests, requests.length);
 	} catch (e) {
 		console.error('Failed to send Discord webhook via chunkedFetchAll:', e);
 	}
@@ -215,7 +218,7 @@ function telegramPost(data) {
 	}));
 	if (requests.length === 0) return;
 	try {
-		chunkedFetchAll(requests, telegramApp.length);
+		chunkedFetchAll(requests, requests.length);
 	} catch (e) {
 		console.error('Failed to send Telegram messages via chunkedFetchAll:', e);
 	}
@@ -246,6 +249,7 @@ function createDummyResponse() {
 }
 
 function chunkedFetchAll(requests, chunkSize = Settings.chunkSize) {
+	chunkSize = Math.min(chunkSize, Settings.chunkSize)
 	const out = [];
 	for (let i = 0; i < requests.length; i += chunkSize) {
 		const chunk = requests.slice(i, i + chunkSize);
