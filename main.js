@@ -165,7 +165,7 @@ function discordPost(data, colCount = Settings.discordColumn) {
 	const rows = Array.isArray(data) ? data : [data];
 	const allSuccess = rows.every(r => r.success);
 	const fields = rows.flatMap((r, i) => [
-		{ name: `👤 ${r.name}`, value: `**Status:**\n${r.status}\n**Response:**\n${r.msg || 'None'}`, inline: true },
+		{ name: `👤 ${r.name}`, value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${r.msg || 'None'}`, inline: true },
 		...((i + 1) % colCount === 0 && (i + 1) < rows.length && colCount < 3 ? [{ name: '\u200B', value: '\u200B', inline: false }] : [])
 	]);
 	const embed = {
@@ -200,7 +200,7 @@ function discordPost(data, colCount = Settings.discordColumn) {
 
 function telegramPost(data) {
 	const rows = Array.isArray(data) ? data : [data];
-	const message = rows.map(r => `<b>👤 ${r.name}</b>\n<b>Status:</b>\n${r.status}\n<b>Response:</b>\n${r.msg || 'None'}`).join('\n------------------\n');
+	const message = rows.map(r => `<b>👤 ${r.name}</b>\n<b>Status:</b>\n\u2003${r.status}\n<b>Response:</b>\n\u2003${r.msg || 'None'}`).join('\n------------------\n');
 	const requests = telegramApp
 		.filter(tg => tg.notify)
 		.map(tg => ({
