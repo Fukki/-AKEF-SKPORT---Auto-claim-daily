@@ -235,7 +235,7 @@ function generateSign(path, body, timestamp, token, platform, vName) {
 	const str = path + (body || '') + timestamp + headerJson;
 	const hmac = Utilities.computeHmacSha256Signature(str, token || '');
 	const hmacHex = bytesToHex(hmac);
-	const md5 = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, hmacHex);
+	const md5 = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, hmacHex, Utilities.Charset.UTF_8);
 	return bytesToHex(md5);
 }
 
