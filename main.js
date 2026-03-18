@@ -105,10 +105,10 @@ function main() {
 }
 
 function formatResult(p, payload, meta, i) {
-	const name = p.nickname || `#${i + 1}`;
+	const nickname = p.nickname || `#${i + 1}`;
 	const serverName = p.serverName || "";
 	const out = {
-		nickname: name,
+		nickname,
 		serverName,
 		success: false,
 		status: "",
@@ -120,7 +120,7 @@ function formatResult(p, payload, meta, i) {
 	if (!meta?.json) {
 		out.status = "💥 Invalid JSON / Fetch Failed";
 		out.msg = meta?.rawText || "No response";
-		console.log(`[${name} (${serverName})] ${out.status}\n${out.msg}`);
+		console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
 		return out;
 	}
 
@@ -133,7 +133,7 @@ function formatResult(p, payload, meta, i) {
 			? (json?.data?.awardIds || []).map(a => {
 				const id = a?.id ?? a;
 				const r = json.data.resourceInfoMap?.[id];
-				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
+				return r ? `🎁 ${r.nickname} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
 	} else {
@@ -141,7 +141,7 @@ function formatResult(p, payload, meta, i) {
 		out.msg = json.message || "Unknown Error";
 	}
 
-	console.log(`[${name} (${serverName})] ${out.status}\n${out.msg}`);
+	console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
 	return out;
 }
 
