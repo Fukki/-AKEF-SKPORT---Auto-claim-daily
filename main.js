@@ -22,34 +22,34 @@ const telegramApp = [
 ];
 
 const Settings = {
-  platform: "3",
-  vName: "1.0.0",
-  appCode: "endfield",
+	platform: "3",
+	vName: "1.0.0",
+	appCode: "endfield",
 	retry: { max: 3, initialBackoffMs: 1000 },
 	endpoints: {
-    refresh: "https://zonai.skport.com/web/v1/auth/refresh",
-  	binding: "https://zonai.skport.com/api/v1/game/player/binding",
-  	attendance: "https://zonai.skport.com/web/v1/game/endfield/attendance"
+		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
+		binding: "https://zonai.skport.com/api/v1/game/player/binding",
+		attendance: "https://zonai.skport.com/web/v1/game/endfield/attendance"
 	},
-	userAgent: 'Mozilla/5.0',
+	userAgent: "Mozilla/5.0",
 	defaultHeaders: {
-		accept: 'application/json, text/plain, */*',
-		origin: 'https://game.skport.com',
-		referer: 'https://game.skport.com/'
+		accept: "application/json, text/plain, */*",
+		origin: "https://game.skport.com",
+		referer: "https://game.skport.com/"
 	},
 	baseAttHeaders: {
-		'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-		'Accept': '*/*',
-		'Accept-Language': 'en-US,en;q=0.9',
-		'Accept-Encoding': 'gzip, deflate, br, zstd',
-		'Referer': 'https://game.skport.com/',
-		'Content-Type': 'application/json',
-		'sk-language': 'en',
-		'Origin': 'https://game.skport.com',
-		'Connection': 'keep-alive',
-		'Sec-Fetch-Dest': 'empty',
-		'Sec-Fetch-Mode': 'cors',
-		'Sec-Fetch-Site': 'same-site'
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+		Accept: "*/*",
+		"Accept-Language": "en-US,en;q=0.9",
+		"Accept-Encoding": "gzip, deflate, br, zstd",
+		Referer: "https://game.skport.com/",
+		"Content-Type": "application/json",
+		"sk-language": "en",
+		Origin: "https://game.skport.com",
+		Connection: "keep-alive",
+		"Sec-Fetch-Dest": "empty",
+		"Sec-Fetch-Mode": "cors",
+		"Sec-Fetch-Site": "same-site"
 	},
 	chunkSize: 20,
 	discordColumn: 2,
@@ -57,15 +57,13 @@ const Settings = {
 };
 
 function main() {
-	if (!profiles?.length) return [];
+	if (!profiles.length) return [];
 
-	const maxRetry = Settings.retry?.max || 1;
-	const backoff = Settings.retry?.initialBackoffMs || 1000;
-
+	const { max: maxRetry = 1, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
 	let tokens = [];
 
-	for (let attempt = 0; attempt < maxRetry; attempt++) {
-		const refreshReqs = profiles.map(p => ({
+	for (let a = 0; a < maxRetry; a++) {
+		tokens = chunkedFetchAll(profiles.map(p => ({
 			url: Settings.endpoints.refresh,
 			method: "get",
 			muteHttpExceptions: true,
@@ -78,73 +76,52 @@ function main() {
 				Origin: Settings.defaultHeaders.origin,
 				Referer: Settings.defaultHeaders.referer
 			}
-		}));
+		}))).map(r => parseJson(r?.getContentText?.())?.data?.token || "");
 
-		tokens = chunkedFetchAll(refreshReqs).map(r =>
-			safeParse(r?.getContentText?.())?.data?.token || ""
-		);
-
-		if (tokens.every(t => t)) break;
-		Utilities.sleep(backoff * Math.pow(2, attempt));
+		if (tokens.every(Boolean)) break;
+		Utilities.sleep(backoff << a);
 	}
 
-	const resolvedProfiles = profiles.map((p, i) => {
-		let binding = null;
-
-		for (let attempt = 0; attempt < maxRetry; attempt++) {
-			binding = getPlayerBinding(p.cred || "", tokens[i] || "");
-			if (binding?.skGameRole) break;
-			Utilities.sleep(backoff * Math.pow(2, attempt));
+	const resolved = profiles.map((p, i) => {
+		let b = null;
+		for (let a = 0; a < maxRetry; a++) {
+			b = getPlayerBinding(p.cred || "", tokens[i] || "");
+			if (b?.skGameRole) break;
+			Utilities.sleep(backoff << a);
 		}
 
 		return {
 			...p,
-			skGameRole: binding?.skGameRole || p.skGameRole || "",
-			nickname: binding?.nickname || p.nickname || "",
-			serverName: binding?.serverName || p.serverName || "",
-			level: binding?.level ?? p.level ?? 0,
-			gameId: binding?.gameId ?? p.gameId ?? ""
+			...b,
+			skGameRole: b?.skGameRole || p.skGameRole || "",
+			nickname: b?.nickname || p.nickname || "",
+			serverName: b?.serverName || p.serverName || "",
+			level: b?.level ?? p.level ?? 0,
+			gameId: b?.gameId ?? p.gameId ?? ""
 		};
 	});
 
 	let metas = chunkedFetchAll(
-		resolvedProfiles.map((p, i) =>
-			buildAttendRequest(p, { role: p.skGameRole }, tokens[i] || "", nowTs())
-		)
+		resolved.map((p, i) => buildAttendRequest(p, tokens[i] || "", nowTs()))
 	).map(readMeta);
 
-	for (let attempt = 1, failed = getFailedIdxFromMeta(metas); failed.length && attempt < maxRetry; attempt++, failed = getFailedIdxFromMeta(metas)) {
-    Utilities.sleep(backoff * Math.pow(2, attempt));
+	for (let a = 1, failed = failedIdx(metas); failed.length && a < maxRetry; a++, failed = failedIdx(metas)) {
+		Utilities.sleep(backoff << a);
 		const ts = nowTs();
-
-		chunkedFetchAll(
-			failed.map(i =>
-				buildAttendRequest(resolvedProfiles[i], { role: resolvedProfiles[i].skGameRole }, tokens[i] || "", ts)
-			)
-		).forEach((r, k) => metas[failed[k]] = readMeta(r));
+		chunkedFetchAll(failed.map(i => buildAttendRequest(resolved[i], tokens[i] || "", ts)))
+			.forEach((r, k) => metas[failed[k]] = readMeta(r));
 	}
 
-	const results = resolvedProfiles.map((p, i) =>
-		formatResult(p, { role: p.skGameRole }, metas[i], i)
-	);
-
+	const results = resolved.map((p, i) => formatResult(p, metas[i], i));
 	discordPost(results);
 	telegramPost(results);
 	return results;
 }
 
-function formatResult(p, payload, meta, i) {
+function formatResult(p, meta, i) {
 	const nickname = p.nickname || `#${i + 1}`;
 	const serverName = p.serverName || "";
-	const out = {
-		nickname,
-		serverName,
-		success: false,
-		status: "",
-		msg: "",
-		payload,
-		raw: (meta?.rawText || "").slice(0, 2000)
-	};
+	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000) };
 
 	if (!meta?.json) {
 		out.status = "💥 Invalid JSON / Fetch Failed";
@@ -153,29 +130,28 @@ function formatResult(p, payload, meta, i) {
 		return out;
 	}
 
-	const json = meta.json;
-
-	if (Settings.successCodes.has(json.code)) {
+	const j = meta.json;
+	if (Settings.successCodes.has(j.code)) {
 		out.success = true;
-		out.status = json.code === 0 ? "✅ Check-in Successful" : "👌 Already Checked In";
-		out.msg = json.code === 0
-			? (json?.data?.awardIds || []).map(a => {
+		out.status = j.code === 0 ? "✅ Check-in Successful" : "👌 Already Checked In";
+		out.msg = j.code === 0
+			? (j?.data?.awardIds || []).map(a => {
 				const id = a?.id ?? a;
-				const r = json.data.resourceInfoMap?.[id];
+				const r = j.data.resourceInfoMap?.[id];
 				return r ? `🎁 ${r.nickname} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
 	} else {
-		out.status = `❌ Error (Code: ${json.code})`;
-		out.msg = json.message || "Unknown Error";
+		out.status = `❌ Error (Code: ${j.code})`;
+		out.msg = j.message || "Unknown Error";
 	}
 
 	console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
 	return out;
 }
 
-function discordPost(data, colCount = Settings.discordColumn || 2) {
-	const rows = Array.isArray(data) ? data : [data];
+function discordPost(rows, colCount = Settings.discordColumn || 2) {
+	rows = Array.isArray(rows) ? rows : [rows];
 	const allSuccess = rows.every(r => r.success);
 
 	const embed = {
@@ -188,7 +164,9 @@ function discordPost(data, colCount = Settings.discordColumn || 2) {
 				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${r.msg || "None"}`,
 				inline: true
 			},
-			...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3 ? [{ name: "\u200B", value: "\u200B", inline: false }] : [])
+			...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3
+				? [{ name: "\u200B", value: "\u200B", inline: false }]
+				: [])
 		]),
 		footer: { text: "Claimed on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
 		timestamp: new Date().toISOString()
@@ -212,9 +190,11 @@ function discordPost(data, colCount = Settings.discordColumn || 2) {
 	if (reqs.length) chunkedFetchAll(reqs);
 }
 
-function telegramPost(data) {
-	const rows = Array.isArray(data) ? data : [data];
-	const msg = rows.map(r => `<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n\u2003${r.status}\n<b>Response:</b>\n\u2003${r.msg || "None"}`).join("\n------------------\n");
+function telegramPost(rows) {
+	rows = Array.isArray(rows) ? rows : [rows];
+	const msg = rows.map(r =>
+		`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n\u2003${r.status}\n<b>Response:</b>\n\u2003${r.msg || "None"}`
+	).join("\n------------------\n");
 
 	const reqs = telegramApp
 		.filter(tg => tg.notify && tg.telegramBotToken)
@@ -235,14 +215,14 @@ function telegramPost(data) {
 
 function getPlayerBinding(cred, signToken) {
 	try {
-		const ts = String(Math.floor(Date.now() / 1000));
+		const ts = nowTs();
 		const path = "/api/v1/game/player/binding";
 
 		const res = UrlFetchApp.fetch(Settings.endpoints.binding, {
 			method: "get",
 			muteHttpExceptions: true,
 			headers: {
-				cred: cred,
+				cred,
 				platform: Settings.platform,
 				vname: Settings.vName,
 				timestamp: ts,
@@ -251,24 +231,18 @@ function getPlayerBinding(cred, signToken) {
 			}
 		});
 
-		const json = safeParse(res?.getContentText?.());
-		const app = json?.code === 0
-			? json?.data?.list?.find(a => a.appCode === Settings.appCode && a.bindingList?.length)
-			: null;
+		const j = parseJson(res?.getContentText?.());
+		const app = j?.code === 0 ? j?.data?.list?.find(a => a.appCode === Settings.appCode && a.bindingList?.length) : null;
+		const b = app?.bindingList?.[0];
+		const role = b?.defaultRole || b?.roles?.[0];
 
-		const binding = app?.bindingList?.[0];
-		const role = binding?.defaultRole || binding?.roles?.[0];
-
-		return role?.roleId && role?.serverId
-			? {
-				skGameRole: `${binding.gameId}_${role.roleId}_${role.serverId}`,
-				gameId: binding.gameId ?? "",
-				nickname: role.nickname ?? "",
-				serverName: role.serverName ?? "",
-				level: role.level ?? 0
-			}
-			: null;
-
+		return role?.roleId && role?.serverId ? {
+			skGameRole: `${b.gameId}_${role.roleId}_${role.serverId}`,
+			gameId: b.gameId || "",
+			nickname: role.nickname || "",
+			serverName: role.serverName || "",
+			level: role.level || 0
+		} : null;
 	} catch (e) {
 		console.error("getPlayerBinding failed:", e);
 		return null;
@@ -277,24 +251,15 @@ function getPlayerBinding(cred, signToken) {
 
 function readMeta(r) {
 	const raw = r?.getContentText?.() || "";
-	return {
-		resp: r,
-		json: safeParse(raw),
-		code: r?.getResponseCode?.() ?? null,
-		rawText: raw
-	};
+	return { resp: r, json: parseJson(raw), code: r?.getResponseCode?.() ?? null, rawText: raw };
+}
+
+function parseJson(s) {
+	try { return JSON.parse(s); } catch (e) { return null; }
 }
 
 function nowTs() {
 	return String(Math.floor(Date.now() / 1000));
-}
-
-function safeParse(s) {
-	try {
-		return JSON.parse(s);
-	} catch (e) {
-		return null;
-	}
 }
 
 function bytesToHex(bytes) {
@@ -308,11 +273,8 @@ function generateSign(path, body, timestamp, token, platform, vName) {
 		dId: "",
 		vName: String(vName)
 	});
-	const str = path + (body || "") + timestamp + headerJson;
-	const hmac = Utilities.computeHmacSha256Signature(str, token || "");
-	const hmacHex = bytesToHex(hmac);
-	const md5 = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, hmacHex, Utilities.Charset.UTF_8);
-	return bytesToHex(md5);
+	const hmac = Utilities.computeHmacSha256Signature(path + (body || "") + timestamp + headerJson, token || "");
+	return bytesToHex(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, bytesToHex(hmac), Utilities.Charset.UTF_8));
 }
 
 function createDummyResponse() {
@@ -326,39 +288,27 @@ function chunkedFetchAll(requests) {
 	if (!requests?.length) return [];
 	const out = [];
 	for (let i = 0; i < requests.length; i += (Settings.chunkSize || 20)) {
-		const chunk = requests.slice(i, i + (Settings.chunkSize || 20));
 		try {
-			out.push(...UrlFetchApp.fetchAll(chunk));
+			out.push(...UrlFetchApp.fetchAll(requests.slice(i, i + (Settings.chunkSize || 20))));
 		} catch (e) {
 			console.error("chunk fetchAll failed", e);
-			out.push(...chunk.map(() => createDummyResponse()));
+			out.push(...requests.slice(i, i + (Settings.chunkSize || 20)).map(() => createDummyResponse()));
 		}
 	}
 	return out;
 }
 
-function isFailedResponse(meta) {
-	try {
-		if (!meta?.json) return true;
-		if (Settings.successCodes.has(meta.json.code)) return false;
-		return !meta.code || meta.code >= 500;
-	} catch (e) {
-		return true;
-	}
+function failedIdx(arr) {
+	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
 
-function getFailedIdxFromMeta(metaArr) {
-	return metaArr.map((m, i) => isFailedResponse(m) ? i : -1).filter(i => i >= 0);
-}
-
-function buildAttendRequest(p, payload, token, ts) {
-	const bodyStr = JSON.stringify(payload);
-	const sign = generateSign("/web/v1/game/endfield/attendance", bodyStr, ts, token || "", Settings.platform, Settings.vName);
+function buildAttendRequest(p, token, ts) {
+	const body = JSON.stringify({ role: p.skGameRole });
 	return {
 		url: Settings.endpoints.attendance,
 		method: "post",
 		contentType: "application/json",
-		payload: bodyStr,
+		payload: body,
 		muteHttpExceptions: true,
 		headers: Object.assign({}, Settings.baseAttHeaders, {
 			"sk-game-role": p.skGameRole || "",
@@ -366,7 +316,7 @@ function buildAttendRequest(p, payload, token, ts) {
 			platform: Settings.platform || "",
 			vName: Settings.vName || "",
 			timestamp: ts,
-			sign
+			sign: generateSign("/web/v1/game/endfield/attendance", body, ts, token || "", Settings.platform, Settings.vName)
 		})
 	};
 }
