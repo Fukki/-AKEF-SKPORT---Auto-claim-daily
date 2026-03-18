@@ -216,8 +216,6 @@ function telegramPost(rows) {
 function getPlayerBinding(cred, signToken) {
 	try {
 		const ts = nowTs();
-		const path = "/api/v1/game/player/binding";
-
 		const res = UrlFetchApp.fetch(Settings.endpoints.binding, {
 			method: "get",
 			muteHttpExceptions: true,
@@ -227,7 +225,7 @@ function getPlayerBinding(cred, signToken) {
 				vname: Settings.vName,
 				timestamp: ts,
 				"sk-language": "en",
-				sign: generateSign(path, "", ts, signToken, Settings.platform, Settings.vName)
+				sign: generateSign("/api/v1/game/player/binding", "", ts, signToken, Settings.platform, Settings.vName)
 			}
 		});
 
