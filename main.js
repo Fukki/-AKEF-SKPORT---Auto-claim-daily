@@ -59,46 +59,75 @@ const Settings = {
 function main() {
 	if (!profiles?.length) return [];
 
-	const refreshReqs = profiles.map(p => ({
-		url: Settings.endpoints.refresh,
-		method: "get",
-		muteHttpExceptions: true,
-		headers: {
-			"User-Agent": Settings.userAgent,
-			Accept: Settings.defaultHeaders.accept,
-			cred: p.cred || "",
-			platform: Settings.platform || "",
-			vName: Settings.vName || "",
-			Origin: Settings.defaultHeaders.origin,
-			Referer: Settings.defaultHeaders.referer
-		}
-	}));
+	const maxRetry = Settings.retry?.max || 1;
+	const backoff = Settings.retry?.initialBackoffMs || 1000;
 
-	const tokens = chunkedFetchAll(refreshReqs).map(r => safeParse(r?.getContentText?.())?.data?.token || "");
+	let tokens = [];
+
+	for (let attempt = 0; attempt < maxRetry; attempt++) {
+		const refreshReqs = profiles.map(p => ({
+			url: Settings.endpoints.refresh,
+			method: "get",
+			muteHttpExceptions: true,
+			headers: {
+				"User-Agent": Settings.userAgent,
+				Accept: Settings.defaultHeaders.accept,
+				cred: p.cred || "",
+				platform: Settings.platform || "",
+				vName: Settings.vName || "",
+				Origin: Settings.defaultHeaders.origin,
+				Referer: Settings.defaultHeaders.referer
+			}
+		}));
+
+		tokens = chunkedFetchAll(refreshReqs).map(r =>
+			safeParse(r?.getContentText?.())?.data?.token || ""
+		);
+
+		if (tokens.every(t => t)) break;
+		Utilities.sleep(backoff * Math.pow(2, attempt));
+	}
 
 	const resolvedProfiles = profiles.map((p, i) => {
-		const b = getPlayerBinding(p.cred || "", tokens[i] || "");
+		let binding = null;
+
+		for (let attempt = 0; attempt < maxRetry; attempt++) {
+			binding = getPlayerBinding(p.cred || "", tokens[i] || "");
+			if (binding?.skGameRole) break;
+			Utilities.sleep(backoff * Math.pow(2, attempt));
+		}
+
 		return {
 			...p,
-			skGameRole: b?.skGameRole || p.skGameRole || "",
-			nickname: b?.nickname || p.nickname || "",
-			serverName: b?.serverName || p.serverName || "",
-			level: b?.level ?? p.level ?? 0,
-			gameId: b?.gameId ?? p.gameId ?? ""
+			skGameRole: binding?.skGameRole || p.skGameRole || "",
+			nickname: binding?.nickname || p.nickname || "",
+			serverName: binding?.serverName || p.serverName || "",
+			level: binding?.level ?? p.level ?? 0,
+			gameId: binding?.gameId ?? p.gameId ?? ""
 		};
 	});
 
-	const payloads = resolvedProfiles.map(p => ({ role: p.skGameRole }));
-	let metas = chunkedFetchAll(resolvedProfiles.map((p, i) => buildAttendRequest(p, payloads[i], tokens[i] || "", nowTs()))).map(readMeta);
+	let metas = chunkedFetchAll(
+		resolvedProfiles.map((p, i) =>
+			buildAttendRequest(p, { role: p.skGameRole }, tokens[i] || "", nowTs())
+		)
+	).map(readMeta);
 
-	for (let attempt = 1, failed = getFailedIdxFromMeta(metas); failed.length && attempt < (Settings.retry?.max || 1); attempt++, failed = getFailedIdxFromMeta(metas)) {
-		Utilities.sleep((Settings.retry?.initialBackoffMs || 1000) * Math.pow(2, attempt - 1));
+	for (let attempt = 1, failed = getFailedIdxFromMeta(metas); failed.length && attempt < maxRetry; attempt++, failed = getFailedIdxFromMeta(metas)) {
+    Utilities.sleep(backoff * Math.pow(2, attempt));
 		const ts = nowTs();
-		const reqs = failed.map(i => buildAttendRequest(resolvedProfiles[i], payloads[i], tokens[i] || "", ts));
-		chunkedFetchAll(reqs).forEach((r, k) => metas[failed[k]] = readMeta(r));
+
+		chunkedFetchAll(
+			failed.map(i =>
+				buildAttendRequest(resolvedProfiles[i], { role: resolvedProfiles[i].skGameRole }, tokens[i] || "", ts)
+			)
+		).forEach((r, k) => metas[failed[k]] = readMeta(r));
 	}
 
-	const results = resolvedProfiles.map((p, i) => formatResult(p, payloads[i], metas[i], i));
+	const results = resolvedProfiles.map((p, i) =>
+		formatResult(p, { role: p.skGameRole }, metas[i], i)
+	);
+
 	discordPost(results);
 	telegramPost(results);
 	return results;
