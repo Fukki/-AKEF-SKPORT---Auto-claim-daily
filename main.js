@@ -138,7 +138,7 @@ function formatResult(p, meta, i) {
 			? (j?.data?.awardIds || []).map(a => {
 				const id = a?.id ?? a;
 				const r = j.data.resourceInfoMap?.[id];
-				return r ? `🎁 ${r.nickname} x${r.count}` : String(id || "Unknown");
+				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
 	} else {
