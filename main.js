@@ -95,9 +95,7 @@ function main() {
 			...b,
 			skGameRole: b?.skGameRole || p.skGameRole || "",
 			nickname: b?.nickname || p.nickname || "",
-			serverName: b?.serverName || p.serverName || "",
-			level: b?.level ?? p.level ?? 0,
-			gameId: b?.gameId ?? p.gameId ?? ""
+			serverName: b?.serverName || p.serverName || ""
 		};
 	});
 
@@ -236,10 +234,8 @@ function getPlayerBinding(cred, signToken) {
 
 		return role?.roleId && role?.serverId ? {
 			skGameRole: `${b.gameId}_${role.roleId}_${role.serverId}`,
-			gameId: b.gameId || "",
 			nickname: role.nickname || "",
-			serverName: role.serverName || "",
-			level: role.level || 0
+			serverName: role.serverName || ""
 		} : null;
 	} catch (e) {
 		console.error("getPlayerBinding failed:", e);
