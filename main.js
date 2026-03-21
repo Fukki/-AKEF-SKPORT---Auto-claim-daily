@@ -95,7 +95,7 @@ function main() {
 			...b,
 			skGameRole: b?.skGameRole || p.skGameRole || "",
 			nickname: b?.nickname || p.accountName || "",
-			serverName: b?.serverName || ""
+			serverName: b?.serverName || p.serverName || ""
 		};
 	});
 
