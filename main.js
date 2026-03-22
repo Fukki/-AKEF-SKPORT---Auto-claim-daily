@@ -75,44 +75,33 @@ function main() {
 	});
 
 	const bindIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
-	if (bindIdx.length)
+	let bindMetas = Array(resolved.length).fill(null);
+	if (bindIdx.length) {
 		chunkedFetchAll(
 			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
-		).forEach((r, k) => {
-			const j = parseJson(r?.getContentText?.());
+		).forEach((r, k) => bindMetas[bindIdx[k]] = readMeta(r));
+
+		for (let a = 1, f; (f = failedIdx(bindMetas).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
+			Utilities.sleep(backoff << a);
+			chunkedFetchAll(
+				f.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
+			).forEach((r, k) => bindMetas[f[k]] = readMeta(r));
+		}
+
+		bindIdx.forEach(i => {
+			const j = bindMetas[i]?.json;
 			const app = j?.code === 0 ? j?.data?.list?.find(a => a.appCode === Settings.appCode && a.bindingList?.length) : null;
 			const b = app?.bindingList?.[0];
 			const role = b?.defaultRole || b?.roles?.[0];
-			const idx = bindIdx[k];
 
-			resolved[idx] = {
-				...resolved[idx],
-				skGameRole: role?.roleId && role?.serverId ? `${b.gameId}_${role.roleId}_${role.serverId}` : (resolved[idx].skGameRole || ""),
-				nickname: role?.nickname || resolved[idx].accountName || "",
-				serverName: role?.serverName || resolved[idx].serverName || ""
+			resolved[i] = {
+				...resolved[i],
+				skGameRole: role?.roleId && role?.serverId ? `${b.gameId}_${role.roleId}_${role.serverId}` : (resolved[i].skGameRole || ""),
+				nickname: role?.nickname || resolved[i].accountName || "",
+				serverName: role?.serverName || resolved[i].serverName || ""
 			};
 		});
-
-	const reqIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
-	if (reqIdx.length) {
-		chunkedFetchAll(
-			reqIdx.map(i => buildAttendRequest(resolved[i], resolved[i].token, nowTs()))
-		).map(readMeta)
-		 .forEach((m, k) => resolved[reqIdx[k]].meta = m);
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.meta)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			Utilities.sleep(backoff << a);
-			chunkedFetchAll(
-				f.map(i => buildAttendRequest(resolved[i], resolved[i].token, nowTs()))
-			).map(readMeta)
-			 .forEach((m, k) => resolved[f[k]].meta = m);
-		}
 	}
-
-	const results = resolved.map((p, i) => formatResult(p, p.meta, i));
-	discordPost(results);
-	telegramPost(results);
-	return results;
-}
 
 function formatResult(p, meta, i) {
 	const nickname = p.nickname || `#${i + 1}`;
