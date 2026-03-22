@@ -86,7 +86,7 @@ function main() {
 		let b = null;
 		for (let a = 0; a < maxRetry; a++) {
 			b = getPlayerBinding(p.cred || "", tokens[i] || "");
-			if (b?.skGameRole) break;
+			if (b?.skGameRole || b?.isLogin === false) break;
 			Utilities.sleep(backoff << a);
 		}
 
@@ -95,19 +95,19 @@ function main() {
 			...b,
 			skGameRole: b?.skGameRole || p.skGameRole || "",
 			nickname: b?.nickname || p.accountName || "",
-			serverName: b?.serverName || p.serverName || ""
+			serverName: b?.serverName || p.serverName || "",
+			isLogin: b?.isLogin
 		};
 	});
 
 	let metas = chunkedFetchAll(
 		resolved.map((p, i) => buildAttendRequest(p, tokens[i] || "", nowTs()))
 	).map(readMeta);
-
-	for (let a = 1, failed = failedIdx(metas); failed.length && a < maxRetry; a++, failed = failedIdx(metas)) {
+	for (let a = 1, failed; (failed = failedIdx(metas).filter(i => resolved[i]?.isLogin)).length && a < maxRetry; a++) {
 		Utilities.sleep(backoff << a);
-		const ts = nowTs();
-		chunkedFetchAll(failed.map(i => buildAttendRequest(resolved[i], tokens[i] || "", ts)))
-			.forEach((r, k) => metas[failed[k]] = readMeta(r));
+		chunkedFetchAll(
+			failed.map(i => buildAttendRequest(resolved[i], tokens[i] || "", nowTs()))
+		).forEach((r, k) => metas[failed[k]] = readMeta(r));
 	}
 
 	const results = resolved.map((p, i) => formatResult(p, metas[i], i));
@@ -235,7 +235,8 @@ function getPlayerBinding(cred, signToken) {
 		return role?.roleId && role?.serverId ? {
 			skGameRole: `${b.gameId}_${role.roleId}_${role.serverId}`,
 			nickname: role.nickname || "",
-			serverName: role.serverName || ""
+			serverName: role.serverName || "",
+      isLogin: Boolean(j.code === 0)
 		} : null;
 	} catch (e) {
 		console.error("getPlayerBinding failed:", e);
