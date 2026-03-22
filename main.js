@@ -69,23 +69,29 @@ function main() {
 
 	const resolved = profiles.map((p, i) => {
 		const token = tokens[i];
-		if (token === "" || token === null)
-			return { ...p, token, skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "" };
-			const b = (() => {
-				for (let a = 0; a < maxRetry; a++) {
-					const r = getPlayerBinding(p.cred || "", token);
-					if (r?.skGameRole) return r;
-					Utilities.sleep(backoff << a);
-				}
-				return null;
-			})();
-		return {
-			...p, token,
-			skGameRole: b?.skGameRole || p.skGameRole || "",
-			nickname: b?.nickname || p.accountName || "",
-			serverName: b?.serverName || p.serverName || ""
-		};
+		return (token === "" || token === null)
+			? { ...p, token, skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "" }
+			: { ...p, token };
 	});
+
+	const bindIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
+	if (bindIdx.length)
+		chunkedFetchAll(
+			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
+		).forEach((r, k) => {
+			const j = parseJson(r?.getContentText?.());
+			const app = j?.code === 0 ? j?.data?.list?.find(a => a.appCode === Settings.appCode && a.bindingList?.length) : null;
+			const b = app?.bindingList?.[0];
+			const role = b?.defaultRole || b?.roles?.[0];
+			const idx = bindIdx[k];
+
+			resolved[idx] = {
+				...resolved[idx],
+				skGameRole: role?.roleId && role?.serverId ? `${b.gameId}_${role.roleId}_${role.serverId}` : (resolved[idx].skGameRole || ""),
+				nickname: role?.nickname || resolved[idx].accountName || "",
+				serverName: role?.serverName || resolved[idx].serverName || ""
+			};
+		});
 
 	const reqIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (reqIdx.length) {
@@ -203,39 +209,6 @@ function telegramPost(rows) {
 	if (reqs.length) chunkedFetchAll(reqs);
 }
 
-function getPlayerBinding(cred, signToken) {
-	try {
-		const ts = nowTs();
-		const res = UrlFetchApp.fetch(Settings.endpoints.binding, {
-			method: "get",
-			muteHttpExceptions: true,
-			headers: {
-				cred,
-				platform: Settings.platform,
-				vname: Settings.vName,
-				timestamp: ts,
-				"sk-language": "en",
-				sign: generateSign("/api/v1/game/player/binding", "", ts, signToken, Settings.platform, Settings.vName)
-			}
-		});
-
-		const j = parseJson(res?.getContentText?.());
-		const app = j?.code === 0 ? j?.data?.list?.find(a => a.appCode === Settings.appCode && a.bindingList?.length) : null;
-		const b = app?.bindingList?.[0];
-		const role = b?.defaultRole || b?.roles?.[0];
-
-		return role?.roleId && role?.serverId ? {
-			skGameRole: `${b.gameId}_${role.roleId}_${role.serverId}`,
-			nickname: role.nickname || "",
-			serverName: role.serverName || "",
-      isLogin: Boolean(j && j.code !== 10002)
-		} : null;
-	} catch (e) {
-		console.error("getPlayerBinding failed:", e);
-		return null;
-	}
-}
-
 function readMeta(r) {
 	const raw = r?.getContentText?.() || "";
 	return { resp: r, json: parseJson(raw), code: r?.getResponseCode?.() ?? null, rawText: raw };
@@ -287,6 +260,23 @@ function chunkedFetchAll(requests) {
 
 function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
+}
+
+function buildPlayerBindingRequest(cred, signToken) {
+	const ts = nowTs();
+	return {
+		url: Settings.endpoints.binding,
+		method: "get",
+		muteHttpExceptions: true,
+		headers: {
+			cred,
+			platform: Settings.platform,
+			vname: Settings.vName,
+			timestamp: ts,
+			"sk-language": "en",
+			sign: generateSign("/api/v1/game/player/binding", "", ts, signToken, Settings.platform, Settings.vName)
+		}
+	};
 }
 
 function buildTokenRefresh(p) {
