@@ -25,7 +25,7 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	retry: { max: 3, initialBackoffMs: 1000 },
+	retry: { max: 3, initialBackoffMs: 500 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
@@ -59,27 +59,14 @@ const Settings = {
 function main() {
 	if (!profiles.length) return [];
 
-	const { max: maxRetry = 1, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
-	let tokens = [];
+	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
 
-	for (let a = 0; a < maxRetry; a++) {
-		tokens = chunkedFetchAll(profiles.map(p => ({
-			url: Settings.endpoints.refresh,
-			method: "get",
-			muteHttpExceptions: true,
-			headers: {
-				"User-Agent": Settings.userAgent,
-				Accept: Settings.defaultHeaders.accept,
-				cred: p.cred || "",
-				platform: Settings.platform || "",
-				vName: Settings.vName || "",
-				Origin: Settings.defaultHeaders.origin,
-				Referer: Settings.defaultHeaders.referer
-			}
-		}))).map(r => parseJson(r?.getContentText?.())?.data?.token || "");
-
-		if (tokens.every(Boolean)) break;
+	let tokens = chunkedFetchAll(profiles.map(p => buildTokenRefresht(p)))
+		.map(r => { const m = readMeta(r); return m?.code === 10002 ? "" : (m?.json?.data?.token || null); });
+	for (let a = 1, failed; (failed = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
 		Utilities.sleep(backoff << a);
+		chunkedFetchAll(failed.map(i => buildTokenRefresht(profiles[i])))
+			.forEach((r, k) => tokens[failed[k]] = ((m => m?.code === 10002 ? "" : (m?.json?.data?.token || null))(readMeta(r))));
 	}
 
 	const resolved = profiles.map((p, i) => {
@@ -236,7 +223,7 @@ function getPlayerBinding(cred, signToken) {
 			skGameRole: `${b.gameId}_${role.roleId}_${role.serverId}`,
 			nickname: role.nickname || "",
 			serverName: role.serverName || "",
-      isLogin: Boolean(j.code === 0)
+      isLogin: Boolean(j && j.code !== 10002)
 		} : null;
 	} catch (e) {
 		console.error("getPlayerBinding failed:", e);
@@ -295,6 +282,23 @@ function chunkedFetchAll(requests) {
 
 function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
+}
+
+function buildTokenRefresht(p) {
+	return {
+		url: Settings.endpoints.refresh,
+		method: "get",
+		muteHttpExceptions: true,
+		headers: {
+			"User-Agent": Settings.userAgent,
+			Accept: Settings.defaultHeaders.accept,
+			cred: p.cred || "",
+			platform: Settings.platform || "",
+			vName: Settings.vName || "",
+			Origin: Settings.defaultHeaders.origin,
+			Referer: Settings.defaultHeaders.referer
+		}
+	}
 }
 
 function buildAttendRequest(p, token, ts) {
