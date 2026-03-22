@@ -61,7 +61,7 @@ function main() {
 
 	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
 
-	let tokens = chunkedFetchAll(profiles.map(p => buildTokenRefresht(p)))
+	let tokens = chunkedFetchAll(profiles.map(p => buildTokenRefresh(p)))
 		.map(r => { const m = readMeta(r); return m?.code === 10002 ? "" : (m?.json?.data?.token || null); });
 	for (let a = 1, failed; (failed = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
 		Utilities.sleep(backoff << a);
@@ -284,7 +284,7 @@ function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
 
-function buildTokenRefresht(p) {
+function buildTokenRefresh(p) {
 	return {
 		url: Settings.endpoints.refresh,
 		method: "get",
