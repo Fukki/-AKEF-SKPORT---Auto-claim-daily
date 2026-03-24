@@ -78,17 +78,17 @@ function main() {
 	if (bindIdx.length) {
 		chunkedFetchAll(
 			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
-		).forEach((r, k) => resolved[bindIdx[k]].bindMeta = readMeta(r));
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bindMeta))
+		).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
+		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bind))
 			.filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
 			Utilities.sleep(backoff << a);
 			chunkedFetchAll(
 				f.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
-			).forEach((r, k) => resolved[f[k]].bindMeta = readMeta(r));
+			).forEach((r, k) => resolved[f[k]].bind = readMeta(r));
 		}
 
 		bindIdx.forEach(i => {
-			const j = resolved[i].bindMeta?.json;
+			const j = resolved[i].bind?.json;
 			const app = j?.code === 0 ? j?.data?.list?.find(a => a.appCode === Settings.appCode && a.bindingList?.length) : null;
 			const b = app?.bindingList?.[0];
 			const role = b?.defaultRole || b?.roles?.[0];
