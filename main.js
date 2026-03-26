@@ -158,6 +158,7 @@ function formatResult(p, meta, i) {
 function discordPost(rows, colCount = Settings.discordColumn || 2) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const allSuccess = rows.every(r => r.success);
+	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
 
 	const embed = {
 		title: "📝 Endfield Daily Check-in Report",
@@ -166,7 +167,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 		fields: rows.flatMap((r, i) => [
 			{
 				name: `👤 **${r.nickname} (${r.serverName})**`,
-				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${r.msg || "None"}`,
+				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg) || "None"}`,
 				inline: true
 			},
 			...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3
@@ -197,8 +198,9 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 
 function telegramPost(rows) {
 	rows = Array.isArray(rows) ? rows : [rows];
+	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
 	const msg = rows.map(r =>
-		`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n\u2003${r.status}\n<b>Response:</b>\n\u2003${r.msg || "None"}`
+		`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n\u2003${r.status}\n<b>Response:</b>\n\u2003${nl(r.msg) || "None"}`
 	).join("\n------------------\n");
 
 	const reqs = telegramApp
