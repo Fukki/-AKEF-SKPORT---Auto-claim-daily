@@ -53,7 +53,7 @@ const Settings = {
 	},
 	chunkSize: 20,
 	discordColumn: 2,
-	successCodes: new Set([0, 10001]),
+	successCodes: new Set([0, 10001])
 };
 
 function main() {
