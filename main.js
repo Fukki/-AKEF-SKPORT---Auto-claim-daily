@@ -53,7 +53,7 @@ const Settings = {
 	},
 	chunkSize: 20,
 	discordColumn: 2,
-	successCodes: new Set([0, 10001])
+	successCodes: new Set([0, 10001]),
 };
 
 function main() {
@@ -126,7 +126,7 @@ function main() {
 function formatResult(p, meta, i) {
 	const nickname = p.nickname || `#${i + 1}`;
 	const serverName = p.serverName || "";
-	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000) };
+	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [] };
 
 	if (!meta?.json) {
 		out.status = "💥 Invalid JSON / Fetch Failed";
@@ -134,7 +134,7 @@ function formatResult(p, meta, i) {
 		console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
 		return out;
 	}
-
+  
 	const j = meta.json;
 	if (Settings.successCodes.has(j.code)) {
 		out.success = true;
@@ -143,6 +143,7 @@ function formatResult(p, meta, i) {
 			? (j?.data?.awardIds || []).map(a => {
 				const id = a?.id ?? a;
 				const r = j.data.resourceInfoMap?.[id];
+        out.itemIcon_url.push(r.icon);
 				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
@@ -150,7 +151,6 @@ function formatResult(p, meta, i) {
 		out.status = `❌ Error (Code: ${j.code})`;
 		out.msg = j.message || "Unknown Error";
 	}
-
 	console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
 	return out;
 }
@@ -158,7 +158,8 @@ function formatResult(p, meta, i) {
 function discordPost(rows, colCount = Settings.discordColumn || 2) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const allSuccess = rows.every(r => r.success);
-	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
+	const nl = s => s.replace(/\r?\n/g, '\n\u2003'); 
+  //const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))];
 
 	const embed = {
 		title: "📝 Endfield Daily Check-in Report",
