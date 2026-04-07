@@ -30,7 +30,7 @@ const Settings = {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
 		attendance: "https://zonai.skport.com/web/v1/game/endfield/attendance",
-    card: "https://zonai.skport.com/api/v1/game/endfield/card/detail"
+		card: "https://zonai.skport.com/api/v1/game/endfield/card/detail"
 	},
 	userAgent: "Mozilla/5.0",
 	defaultHeaders: {
@@ -116,27 +116,27 @@ function main() {
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
 		}
 
-    cardIdx.forEach(i => {
-      const j = resolved[i].card?.json?.data?.detail;
-      resolved[i].playerCard = {
-        stamina: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
-        battlepass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
-        daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
-        weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
-      };
-    });
-  }
+	cardIdx.forEach(i => {
+		const j = resolved[i].card?.json?.data?.detail;
+		resolved[i].playerCard = {
+			stamina: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
+			battlepass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
+			daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
+			weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
+			};
+		});
+	}
 
 	const reqIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (reqIdx.length) {
 		chunkedFetchAll(
-			reqIdx.map(i => buildAttendRequest(resolved[i], resolved[i].token, nowTs()))
+			reqIdx.map(i => buildAttendRequest(resolved[i], resolved[i].token))
 		).map(readMeta)
 		 .forEach((m, k) => resolved[reqIdx[k]].meta = m);
 		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.meta)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
 			Utilities.sleep(backoff << a);
 			chunkedFetchAll(
-				f.map(i => buildAttendRequest(resolved[i], resolved[i].token, nowTs()))
+				f.map(i => buildAttendRequest(resolved[i], resolved[i].token))
 			).map(readMeta)
 			 .forEach((m, k) => resolved[f[k]].meta = m);
 		}
@@ -353,8 +353,9 @@ function buildCardRequest(cred, token) {
 	};
 }
 
-function buildAttendRequest(p, token, ts) {
+function buildAttendRequest(p, token) {
 	const body = JSON.stringify({ role: p.skGameRole });
+	const ts = nowTs();
 	return {
 		url: Settings.endpoints.attendance,
 		method: "post",
