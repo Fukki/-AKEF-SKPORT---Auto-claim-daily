@@ -29,7 +29,8 @@ const Settings = {
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
-		attendance: "https://zonai.skport.com/web/v1/game/endfield/attendance"
+		attendance: "https://zonai.skport.com/web/v1/game/endfield/attendance",
+    card: "https://zonai.skport.com/api/v1/game/endfield/card/detail"
 	},
 	userAgent: "Mozilla/5.0",
 	defaultHeaders: {
@@ -70,7 +71,7 @@ function main() {
 	const resolved = profiles.map((p, i) => {
 		const token = tokens[i];
 		return (token === "" || token === null)
-			? { ...p, token, skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "" }
+			? { ...p, token, skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "", playercard: {}}
 			: { ...p, token };
 	});
 
@@ -101,6 +102,30 @@ function main() {
 			};
 		});
 	}
+
+	const cardIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
+	if (cardIdx.length) {
+		chunkedFetchAll(
+			cardIdx.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))
+		).forEach((r, k) => resolved[cardIdx[k]].card = readMeta(r));
+		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.card))
+			.filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
+			Utilities.sleep(backoff << a);
+			chunkedFetchAll(
+				f.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))
+			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
+		}
+
+    cardIdx.forEach(i => {
+      const j = resolved[i].card?.json?.data?.detail;
+      resolved[i].playercard = {
+        stamina: "⚡️ EN: " + j.dungeon.curStamina + "/" + j.dungeon.maxStamina,
+        battlepass: "🗡️ BP: " + j.bpSystem.curLevel + "/" + j.bpSystem.maxLevel,
+        daily: "🔄 Daily: " + j.dailyMission.dailyActivation + "/" + j.dailyMission.maxDailyActivation,
+        weekly: "🔁 Weekly: " + j.weeklyMission.score + "/" + j.weeklyMission.total
+      };
+    });
+  }
 
 	const reqIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (reqIdx.length) {
@@ -134,7 +159,7 @@ function formatResult(p, meta, i) {
 		console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
 		return out;
 	}
-  
+
 	const j = meta.json;
 	if (Settings.successCodes.has(j.code)) {
 		out.success = true;
@@ -147,6 +172,7 @@ function formatResult(p, meta, i) {
 				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
+      out.msg += "\n" + p.playercard.stamina + "\n" + p.playercard.battlepass +"\n" + p.playercard.daily + "\n" + p.playercard.weekly
 	} else {
 		out.status = `❌ Error (Code: ${j.code})`;
 		out.msg = j.message || "Unknown Error";
@@ -159,6 +185,8 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const allSuccess = rows.every(r => r.success);
 	const nl = s => s.replace(/\r?\n/g, '\n\u2003'); 
+
+  //for combine image api and discord webhook image: {url: ""}
   //const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))];
 
 	const embed = {
@@ -274,23 +302,6 @@ function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
 
-function buildPlayerBindingRequest(cred, signToken) {
-	const ts = nowTs();
-	return {
-		url: Settings.endpoints.binding,
-		method: "get",
-		muteHttpExceptions: true,
-		headers: {
-			cred,
-			platform: Settings.platform,
-			vname: Settings.vName,
-			timestamp: ts,
-			"sk-language": "en",
-			sign: generateSign("/api/v1/game/player/binding", "", ts, signToken, Settings.platform, Settings.vName)
-		}
-	};
-}
-
 function buildTokenRefresh(p) {
 	return {
 		url: Settings.endpoints.refresh,
@@ -306,6 +317,40 @@ function buildTokenRefresh(p) {
 			Referer: Settings.defaultHeaders.referer
 		}
 	}
+}
+
+function buildPlayerBindingRequest(cred, token) {
+	const ts = nowTs();
+	return {
+		url: Settings.endpoints.binding,
+		method: "get",
+		muteHttpExceptions: true,
+		headers: {
+			cred,
+			platform: Settings.platform,
+			vname: Settings.vName,
+			timestamp: ts,
+			"sk-language": "en",
+			sign: generateSign("/api/v1/game/player/binding", "", ts, token, Settings.platform, Settings.vName)
+		}
+	};
+}
+
+function buildCardRequest(cred, token) {
+	const ts = nowTs();
+	return {
+		url: Settings.endpoints.card,
+		method: "get",
+		muteHttpExceptions: true,
+		headers: {
+			cred,
+			platform: Settings.platform,
+			vname: Settings.vName,
+			timestamp: ts,
+			"sk-language": "en",
+			sign: generateSign("/api/v1/game/endfield/card/detail", "", ts, token, Settings.platform, Settings.vName)
+		}
+	};
 }
 
 function buildAttendRequest(p, token, ts) {
