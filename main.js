@@ -71,7 +71,7 @@ function main() {
 	const resolved = profiles.map((p, i) => {
 		const token = tokens[i];
 		return (token === "" || token === null)
-			? { ...p, token, skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "", playercard: {}}
+			? { ...p, token, skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "", playerCard: {}}
 			: { ...p, token };
 	});
 
@@ -118,11 +118,11 @@ function main() {
 
     cardIdx.forEach(i => {
       const j = resolved[i].card?.json?.data?.detail;
-      resolved[i].playercard = {
-        stamina: "⚡️ EN: " + j.dungeon.curStamina + "/" + j.dungeon.maxStamina,
-        battlepass: "🗡️ BP: " + j.bpSystem.curLevel + "/" + j.bpSystem.maxLevel,
-        daily: "🔄 Daily: " + j.dailyMission.dailyActivation + "/" + j.dailyMission.maxDailyActivation,
-        weekly: "🔁 Weekly: " + j.weeklyMission.score + "/" + j.weeklyMission.total
+      resolved[i].playerCard = {
+        stamina: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
+        battlepass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
+        daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
+        weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
       };
     });
   }
@@ -172,7 +172,7 @@ function formatResult(p, meta, i) {
 				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
-      out.msg += "\n" + p.playercard.stamina + "\n" + p.playercard.battlepass +"\n" + p.playercard.daily + "\n" + p.playercard.weekly
+      out.msg += `\n${p.playerCard.stamina}\n${p.playerCard.battlepass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`;
 	} else {
 		out.status = `❌ Error (Code: ${j.code})`;
 		out.msg = j.message || "Unknown Error";
