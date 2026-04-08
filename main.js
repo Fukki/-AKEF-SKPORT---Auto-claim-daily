@@ -222,7 +222,37 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 			})
 		}));
 
-	if (reqs.length) chunkedFetchAll(reqs);
+	if (!reqs.length) return;
+
+	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
+	let pending = reqs.map((req, i) => ({ req, index: i }));
+	const results = new Array(reqs.length);
+	for (let a = 0; a <= maxRetry && pending.length; a++) {
+		const responses = chunkedFetchAll(pending.map(p => p.req));
+		const next = [];
+		responses.forEach((res, i) => {
+			const code = res.getResponseCode();
+			const idx = pending[i].index;
+			(code === 204 || code === 200)
+				? results[idx] = res
+				: (a < maxRetry && (code === 429 || code >= 500))
+					? next.push(pending[i])
+					: results[idx] = res;
+		});
+
+		if (next.length) {
+			const delay = backoff << a;
+			console.warn(`discordPost Retry ${a + 1} (${next.length}) in ${delay} ms`);
+			Utilities.sleep(delay);
+		}
+		pending = next;
+	}
+	/*results.forEach((res, i) => {
+		const code = res.getResponseCode();
+		const ok = code >= 200 && code < 300;
+		console[ok ? "log" : "error"](ok ? `Webhook ${i} -> success` : `Webhook ${i} -> failed (${code})`);
+		if (!ok) console.error(res.getContentText());
+	});*/
 }
 
 function telegramPost(rows) {
@@ -246,7 +276,39 @@ function telegramPost(rows) {
 			})
 		}));
 
-	if (reqs.length) chunkedFetchAll(reqs);
+	if (!reqs.length) return;
+
+	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
+	let pending = reqs.map((req, i) => ({ req, index: i }));
+	const results = new Array(reqs.length);
+	for (let a = 0; a <= maxRetry && pending.length; a++) {
+		const responses = chunkedFetchAll(pending.map(p => p.req));
+		const next = [];
+		responses.forEach((res, i) => {
+			const code = res.getResponseCode();
+			const idx = pending[i].index;
+			let ok = code === 200 && (() => {
+				try { return JSON.parse(res.getContentText())?.ok === true; } catch { return false; }
+			})();
+			if (ok) results[idx] = res;
+			else (a < maxRetry && (code === 429 || code >= 500))
+				? next.push(pending[i])
+				: results[idx] = res;
+		});
+		if (next.length) {
+			const delay = backoff << a;
+			console.warn(`telegramPost Retry ${a + 1} (${next.length}) in ${delay} ms`);
+			Utilities.sleep(delay);
+		}
+		pending = next;
+	}
+	/*results.forEach((res, i) => {
+		const code = res.getResponseCode();
+		let ok = false;
+		try { ok = code === 200 && JSON.parse(res.getContentText())?.ok === true; } catch {}
+		console[ok ? "log" : "error"](ok ? `Telegram ${i} -> success` : `Telegram ${i} -> failed (${code})`);
+		if (!ok) console.error(res.getContentText());
+	});*/
 }
 
 function readMeta(r) {
