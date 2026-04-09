@@ -339,22 +339,20 @@ function generateSign(path, body, timestamp, token, platform, vName) {
 	return bytesToHex(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, bytesToHex(hmac), Utilities.Charset.UTF_8));
 }
 
-function createDummyResponse() {
-	return {
-		getContentText: () => "",
-		getResponseCode: () => 500
-	};
-}
-
 function chunkedFetchAll(requests) {
 	if (!requests?.length) return [];
 	const out = [];
-	for (let i = 0; i < requests.length; i += (Settings.chunkSize || 20)) {
+	const size = Settings.chunkSize || 20;
+	for (let i = 0; i < requests.length; i += size) {
+		const chunk = requests.slice(i, i + size);
 		try {
-			out.push(...UrlFetchApp.fetchAll(requests.slice(i, i + (Settings.chunkSize || 20))));
+			out.push(...UrlFetchApp.fetchAll(chunk));
 		} catch (e) {
 			console.error("chunk fetchAll failed", e);
-			out.push(...requests.slice(i, i + (Settings.chunkSize || 20)).map(() => createDummyResponse()));
+			out.push(...chunk.map(() => ({
+				getContentText: () => "",
+				getResponseCode: () => 500
+			})));
 		}
 	}
 	return out;
@@ -364,73 +362,60 @@ function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
 
+const buildHttpRequest = (url, method, headers, payload) => ({
+	url,
+	method,
+	muteHttpExceptions: true,
+	...(payload && { contentType: "application/json", payload }),
+	headers
+});
+
 function buildTokenRefresh(p) {
-	return {
-		url: Settings.endpoints.refresh,
-		method: "get",
-		muteHttpExceptions: true,
-		headers: {
-			"User-Agent": Settings.userAgent,
-			Accept: Settings.defaultHeaders.accept,
-			cred: p.cred || "",
-			platform: Settings.platform || "",
-			vName: Settings.vName || "",
-			Origin: Settings.defaultHeaders.origin,
-			Referer: Settings.defaultHeaders.referer
-		}
-	}
+	return buildHttpRequest(Settings.endpoints.refresh, "get", {
+		"User-Agent": Settings.userAgent,
+		Accept: Settings.defaultHeaders.accept,
+		Origin: Settings.defaultHeaders.origin,
+		Referer: Settings.defaultHeaders.referer,
+		cred: p.cred || "",
+		platform: Settings.platform || "",
+		vName: Settings.vName || ""
+	});
 }
 
 function buildPlayerBindingRequest(cred, token) {
 	const ts = nowTs();
-	return {
-		url: Settings.endpoints.binding,
-		method: "get",
-		muteHttpExceptions: true,
-		headers: {
-			cred,
-			platform: Settings.platform,
-			vname: Settings.vName,
-			timestamp: ts,
-			"sk-language": "en",
-			sign: generateSign("/api/v1/game/player/binding", "", ts, token, Settings.platform, Settings.vName)
-		}
-	};
+	return buildHttpRequest(Settings.endpoints.binding, "get", {
+		cred,
+		platform: Settings.platform,
+		vName: Settings.vName,
+		timestamp: ts,
+		"sk-language": "en",
+		sign: generateSign("/api/v1/game/player/binding", "", ts, token || "", Settings.platform, Settings.vName)
+	});
 }
 
 function buildCardRequest(cred, token) {
 	const ts = nowTs();
-	return {
-		url: Settings.endpoints.card,
-		method: "get",
-		muteHttpExceptions: true,
-		headers: {
-			cred,
-			platform: Settings.platform,
-			vname: Settings.vName,
-			timestamp: ts,
-			"sk-language": "en",
-			sign: generateSign("/api/v1/game/endfield/card/detail", "", ts, token, Settings.platform, Settings.vName)
-		}
-	};
+	return buildHttpRequest(Settings.endpoints.card, "get", {
+		cred,
+		platform: Settings.platform,
+		vName: Settings.vName,
+		timestamp: ts,
+		"sk-language": "en",
+		sign: generateSign("/api/v1/game/endfield/card/detail", "", ts, token || "", Settings.platform, Settings.vName)
+	});
 }
 
 function buildAttendRequest(p, token) {
 	const body = JSON.stringify({ role: p.skGameRole });
 	const ts = nowTs();
-	return {
-		url: Settings.endpoints.attendance,
-		method: "post",
-		contentType: "application/json",
-		payload: body,
-		muteHttpExceptions: true,
-		headers: Object.assign({}, Settings.baseAttHeaders, {
-			"sk-game-role": p.skGameRole || "",
-			cred: p.cred || "",
-			platform: Settings.platform || "",
-			vName: Settings.vName || "",
-			timestamp: ts,
-			sign: generateSign("/web/v1/game/endfield/attendance", body, ts, token || "", Settings.platform, Settings.vName)
-		})
-	};
+	return buildHttpRequest(Settings.endpoints.attendance, "post", {
+		...Settings.baseAttHeaders,
+		cred: p.cred || "",
+		platform: Settings.platform || "",
+		vName: Settings.vName || "",
+		timestamp: ts,
+		"sk-game-role": p.skGameRole || "",
+		sign: generateSign("/web/v1/game/endfield/attendance", body, ts, token || "", Settings.platform, Settings.vName)
+	}, body);
 }
