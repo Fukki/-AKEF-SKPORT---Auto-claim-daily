@@ -63,7 +63,7 @@ function main() {
 
 	let tokens = chunkedFetchAll(profiles.map(buildTokenRefresh)).map(r => ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	for (let a = 1, f; (f = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
-		Utilities.sleep(backoff << a);
+		setDelay(`refreshToken`, backoff << a);
 		chunkedFetchAll(f.map(i => buildTokenRefresht(profiles[i])))
 			.forEach((r, k) => tokens[f[k]] = ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	}
@@ -80,9 +80,8 @@ function main() {
 		chunkedFetchAll(
 			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
 		).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bind))
-			.filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			Utilities.sleep(backoff << a);
+		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bind)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
+			setDelay(`playerBinging`, backoff << a);
 			chunkedFetchAll(
 				f.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
 			).forEach((r, k) => resolved[f[k]].bind = readMeta(r));
@@ -108,9 +107,8 @@ function main() {
 		chunkedFetchAll(
 			cardIdx.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))
 		).forEach((r, k) => resolved[cardIdx[k]].card = readMeta(r));
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.card))
-			.filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			Utilities.sleep(backoff << a);
+		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.card)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
+			setDelay(`playerCard`, backoff << a);
 			chunkedFetchAll(
 				f.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
@@ -134,7 +132,7 @@ function main() {
 		).map(readMeta)
 		 .forEach((m, k) => resolved[reqIdx[k]].meta = m);
 		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.meta)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			Utilities.sleep(backoff << a);
+			setDelay(`rewardClaim`, backoff << a);
 			chunkedFetchAll(
 				f.map(i => buildAttendRequest(resolved[i], resolved[i].token))
 			).map(readMeta)
@@ -239,12 +237,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 					? next.push(pending[i])
 					: results[idx] = res;
 		});
-
-		if (next.length) {
-			const delay = backoff << a;
-			console.warn(`discordPost Retry ${a + 1} (${next.length}) in ${delay} ms`);
-			Utilities.sleep(delay);
-		}
+		if (next.length) setDelay(`discordPost`, backoff << a);
 		pending = next;
 	}
 	/*results.forEach((res, i) => {
@@ -295,11 +288,7 @@ function telegramPost(rows) {
 				? next.push(pending[i])
 				: results[idx] = res;
 		});
-		if (next.length) {
-			const delay = backoff << a;
-			console.warn(`telegramPost Retry ${a + 1} (${next.length}) in ${delay} ms`);
-			Utilities.sleep(delay);
-		}
+		if (next.length) setDelay(`telegramPost`, backoff << a);
 		pending = next;
 	}
 	/*results.forEach((res, i) => {
@@ -360,6 +349,11 @@ function chunkedFetchAll(requests) {
 
 function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
+}
+
+function setDelay(str, delay) {
+	console.warn(`${str} Retry in ${delay} ms`);
+	Utilities.sleep(delay);
 }
 
 const buildHttpRequest = (url, method, headers, payload) => ({
