@@ -81,7 +81,7 @@ function main() {
 			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
 		).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
 		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bind)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			setDelay(`playerBinging`, backoff << a);
+			setDelay(`playerBinding`, backoff << a);
 			chunkedFetchAll(
 				f.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
 			).forEach((r, k) => resolved[f[k]].bind = readMeta(r));
