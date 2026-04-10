@@ -55,7 +55,7 @@ function main() {
 
 	let tokens = chunkedFetchAll(profiles.map(buildTokenRefresh)).map(r => ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	for (let a = 1, f; (f = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
-		setDelay(`refreshToken`, backoff << a);
+		setDelay(`refreshToken`, backoff << (a - 1));
 		chunkedFetchAll(f.map(i => buildTokenRefresh(profiles[i])))
 			.forEach((r, k) => tokens[f[k]] = ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	}
@@ -73,7 +73,7 @@ function main() {
 			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
 		).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
 		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bind)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			setDelay(`playerBinding`, backoff << a);
+			setDelay(`playerBinding`, backoff << (a - 1));
 			chunkedFetchAll(
 				f.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))
 			).forEach((r, k) => resolved[f[k]].bind = readMeta(r));
@@ -100,7 +100,7 @@ function main() {
 			cardIdx.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))
 		).forEach((r, k) => resolved[cardIdx[k]].card = readMeta(r));
 		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.card)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			setDelay(`playerCard`, backoff << a);
+			setDelay(`playerCard`, backoff << (a - 1));
 			chunkedFetchAll(
 				f.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
