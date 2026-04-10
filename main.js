@@ -17,7 +17,7 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	retry: { max: 3, initialBackoffMs: 500 },
+	retry: { max: 5, initialBackoffMs: 500 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
@@ -56,7 +56,7 @@ function main() {
 	let tokens = chunkedFetchAll(profiles.map(buildTokenRefresh)).map(r => ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	for (let a = 1, f; (f = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
 		setDelay(`refreshToken`, backoff << a);
-		chunkedFetchAll(f.map(i => buildTokenRefresht(profiles[i])))
+		chunkedFetchAll(f.map(i => buildTokenRefresh(profiles[i])))
 			.forEach((r, k) => tokens[f[k]] = ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	}
 
