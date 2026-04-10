@@ -288,13 +288,13 @@ function telegramPost(rows) {
 	}
 }
 
-function timeAgo(ts, offset) {
-	const tzOffset = offset ?? parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "Z")) / 100;
-	const diff = Math.floor(Date.now() / 1000) - (Number(ts) + tzOffset * 3600);
-	if (diff < 60) return `${diff}s ago`;
-	if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-	if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-	return `${Math.floor(diff / 86400)}d ago`;
+function timeAgo(ts) {
+	const off = parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "Z")) / 100 * 3600;
+	const d = Math.floor(Date.now() / 1000) - (Number(ts) + off);
+	return d < 60 ? `${d}s ago`
+		: d < 3600 ? `${d/60|0}m ago`
+		: d < 86400 ? `${d/3600|0}h ago`
+		: `${(d/86400|0).toLocaleString()}d ago`;
 }
 
 function readMeta(r) {
