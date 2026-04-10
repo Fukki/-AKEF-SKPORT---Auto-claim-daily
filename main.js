@@ -13,14 +13,6 @@ const discordApp = [
 	}
 ];
 
-const telegramApp = [
-	{
-		notify: false,
-		myTelegramID: 'xxxxx',
-		telegramBotToken: 'xxxxxx:xxxxxxxx'
-	}
-];
-
 const Settings = {
 	platform: "3",
 	vName: "1.0.0",
@@ -289,8 +281,7 @@ function telegramPost(rows) {
 }
 
 function timeAgo(ts) {
-	const off = parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "Z")) / 100 * 3600;
-	const d = Math.floor(Date.now() / 1000) - (Number(ts) + off);
+	const d = Math.floor(Date.now() / 1000) - Number(ts);
 	return d < 60 ? `${d}s ago`
 		: d < 3600 ? `${d/60|0}m ago`
 		: d < 86400 ? `${d/3600|0}h ago`
