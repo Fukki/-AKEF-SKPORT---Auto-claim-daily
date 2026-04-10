@@ -114,11 +114,13 @@ function main() {
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
 		}
 
+	const tz = getOffsetHours();
 	cardIdx.forEach(i => {
 		const j = resolved[i].card?.json?.data?.detail;
 		resolved[i].playerCard = {
-			stamina: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
-			battlepass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
+      lastLogin: `🔑 Login: ${tsToDate(j.base.lastLoginTime, tz, `MMM d, HH:mm`)}`,
+			sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
+			battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 			daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
 			weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
 			};
@@ -170,7 +172,7 @@ function formatResult(p, meta, i) {
 				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
-      out.msg += `\n${p.playerCard.stamina}\n${p.playerCard.battlepass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`;
+      out.msg += `\n${p.playerCard.lastLogin}\n${p.playerCard.sanity}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`;
 	} else {
 		out.status = `❌ Error (Code: ${j.code})`;
 		out.msg = j.message || "Unknown Error";
@@ -184,8 +186,8 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 	const allSuccess = rows.every(r => r.success);
 	const nl = s => s.replace(/\r?\n/g, '\n\u2003'); 
 
-  //for combine image api and discord webhook image: {url: ""}
-  //const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))];
+	//for combine image api and discord webhook image: {url: ""}
+	//const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))];
 
 	const embed = {
 		title: "📝 Endfield Daily Check-in Report",
@@ -240,12 +242,6 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 		if (next.length) setDelay(`discordPost`, backoff << a);
 		pending = next;
 	}
-	/*results.forEach((res, i) => {
-		const code = res.getResponseCode();
-		const ok = code >= 200 && code < 300;
-		console[ok ? "log" : "error"](ok ? `Webhook ${i} -> success` : `Webhook ${i} -> failed (${code})`);
-		if (!ok) console.error(res.getContentText());
-	});*/
 }
 
 function telegramPost(rows) {
@@ -291,13 +287,20 @@ function telegramPost(rows) {
 		if (next.length) setDelay(`telegramPost`, backoff << a);
 		pending = next;
 	}
-	/*results.forEach((res, i) => {
-		const code = res.getResponseCode();
-		let ok = false;
-		try { ok = code === 200 && JSON.parse(res.getContentText())?.ok === true; } catch {}
-		console[ok ? "log" : "error"](ok ? `Telegram ${i} -> success` : `Telegram ${i} -> failed (${code})`);
-		if (!ok) console.error(res.getContentText());
-	});*/
+}
+
+function tsToDate(ts, offset = 0, fmt = "yyyy-MM-dd HH:mm:ss") {
+	const n = Number(ts);
+	if (isNaN(n)) return "Invalid timestamp";
+	const ms = n * 1000 + (offset * 60 * 60 * 1000);
+	return Utilities.formatDate(new Date(ms), "UTC", fmt);
+}
+
+function getOffsetHours() {
+	const tz = Session.getScriptTimeZone();
+	const now = new Date();
+	const z = Utilities.formatDate(now, tz, "Z");
+	return parseInt(z) / 100;
 }
 
 function readMeta(r) {
