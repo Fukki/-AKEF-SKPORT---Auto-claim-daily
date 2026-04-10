@@ -114,11 +114,10 @@ function main() {
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
 		}
 
-	const tz = getOffsetHours();
 	cardIdx.forEach(i => {
 		const j = resolved[i].card?.json?.data?.detail;
 		resolved[i].playerCard = {
-      lastLogin: `🔑 Login: ${tsToDate(j.base.lastLoginTime, tz, `d MMM yy, HH:mm`)}`,
+			lastLogin: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
 			sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
 			battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 			daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
@@ -289,18 +288,13 @@ function telegramPost(rows) {
 	}
 }
 
-function tsToDate(ts, offset = 0, fmt = "yyyy-MM-dd HH:mm:ss") {
-	const n = Number(ts);
-	if (isNaN(n)) return "Invalid timestamp";
-	const ms = n * 1000 + (offset * 60 * 60 * 1000);
-	return Utilities.formatDate(new Date(ms), "UTC", fmt);
-}
-
-function getOffsetHours() {
-	const tz = Session.getScriptTimeZone();
-	const now = new Date();
-	const z = Utilities.formatDate(now, tz, "Z");
-	return parseInt(z) / 100;
+function timeAgo(ts, offset) {
+	const tzOffset = offset ?? parseInt(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "Z")) / 100;
+	const diff = Math.floor(Date.now() / 1000) - (Number(ts) + tzOffset * 3600);
+	if (diff < 60) return `${diff}s ago`;
+	if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+	if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+	return `${Math.floor(diff / 86400)}d ago`;
 }
 
 function readMeta(r) {
