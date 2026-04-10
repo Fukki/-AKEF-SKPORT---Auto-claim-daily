@@ -118,7 +118,7 @@ function main() {
 	cardIdx.forEach(i => {
 		const j = resolved[i].card?.json?.data?.detail;
 		resolved[i].playerCard = {
-      lastLogin: `🔑 Login: ${tsToDate(j.base.lastLoginTime, tz, `MMM d, HH:mm`)}`,
+      lastLogin: `🔑 Login: ${tsToDate(j.base.lastLoginTime, tz, `d MMM yy, HH:mm`)}`,
 			sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
 			battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 			daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
