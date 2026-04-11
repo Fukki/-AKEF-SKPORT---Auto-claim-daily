@@ -9,3 +9,5 @@ Warning: This process uses an Auth Cookie to log in to SKPORT.
    - In Firefox: Open F12 → Storage → Cookies
    - In Chrome: Open F12 → Application → Storage → Cookies
    - In Edge: Click the 🔒 icon in the address bar → Cookies and site data → Cookies
+6. Copy the value of "SK_OAUTH_CRED_KEY" and paste it into profiles → cred in the editor.
+7. Run the script. Google will ask for permissions and warn that the script is not secure because it uses authentication (yeah… obviously 😏). Click Advanced and proceed with the Unsafe option.
