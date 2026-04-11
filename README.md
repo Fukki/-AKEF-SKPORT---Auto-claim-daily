@@ -1,5 +1,6 @@
 **Warning:** This process uses an Auth Cookie to log in to SKPORT.
 
+
 **Setup Guide:**
 1. Sign in to your Google account. If you don’t have one, please create it first.
 2. Go to the [Google Apps Script](https://script.google.com/home/start) and select Apps Script.
@@ -13,6 +14,7 @@
 6. Copy the value of "SK_OAUTH_CRED_KEY" and paste it into "profiles" → "cred" in the editor.
 7. Run the script. Google will ask for permissions and warn that the script is not secure because it uses authentication (yeah… obviously 😏). Click Advanced and proceed with the Unsafe option.
 
+
 **Automation Setup:**
 1. On the left sidebar, click the 🕝 Triggers (clock icon).
 2. Click + Add Trigger at the bottom-right corner.
@@ -22,6 +24,7 @@
    - Select type of time based trigger → "Day timer"
    - Select time of day → Up to you (e.g. "Midnight to 1 AM", runs once at a random time within that range).
 3. Once finished, click Save. Google will ask for permissions because the script uses authentication (well… no surprise there 😛). Click Advanced and proceed with the Unsafe option.
+
 
 **Discord Notification (Webhook)**
 1. Open Discord and create a channel for notifications (or use an existing one).
