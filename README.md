@@ -20,8 +20,7 @@
    - Choose which deployment should run → "Head" (by default)
    - Select event source → "Time-driven"
    - Select type of time based trigger → "Day timer"
-   - Select time of day → Up to you ex "Midnight to 1 AM".
-<br>Note: The "Day timer" runs once at a random time within the selected window. For example, if you choose "Midnight to 1 AM", the script will run at a random time within that range and will generally run at a similar time in subsequent executions.
+   - Select time of day → Up to you (e.g. "Midnight to 1 AM", runs once at a random time within that range).
 3. Once finished, click Save. Google will ask for permissions because the script uses authentication (well… no surprise there 😛). Click Advanced and proceed with the Unsafe option.
 
 **Discord Notification (Webhook)**
