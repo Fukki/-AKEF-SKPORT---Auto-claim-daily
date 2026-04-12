@@ -106,14 +106,14 @@ function main() {
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
 		}
 
-	cardIdx.forEach(i => {
-		const j = resolved[i].card?.json?.data?.detail;
-		resolved[i].playerCard = {
-			lastLogin: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
-			sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
-			battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
-			daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
-			weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
+		cardIdx.forEach(i => {
+			const j = resolved[i].card?.json?.data?.detail;
+			resolved[i].playerCard = {
+				lastLogin: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
+				sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
+				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
+				daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
+				weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
 			};
 		});
 	}
