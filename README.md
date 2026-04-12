@@ -11,6 +11,8 @@
    - In Firefox: Open F12 → Storage → Cookies
    - In Chrome: Open F12 → Application → Storage → Cookies
    - In Edge: Click the 🔒 icon in the address bar → Cookies and site data → Cookies
+   - In Opera: Enter "opera://settings/content/all" or "opera://settings/cookies" on address bar, then search for the skport site.
+   - In Brave: Enter "brave://settings/siteData" on address bar, then search for the skport site.
 7. Copy the value of "SK_OAUTH_CRED_KEY" and paste it into "profiles" → "cred" in the editor.
 8. Run the script. Google will ask for permissions and warn that the script is not secure because it uses authentication (yeah… obviously 😏). Click Advanced and proceed with the Unsafe option.
 
