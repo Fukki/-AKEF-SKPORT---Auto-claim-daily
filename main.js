@@ -125,7 +125,7 @@ function main() {
 		).map(readMeta)
 		 .forEach((m, k) => resolved[reqIdx[k]].meta = m);
 		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.meta)).filter(i => resolved[i].token !== "" && resolved[i].token !== null)).length && a < maxRetry; a++) {
-			setDelay(`rewardClaim`, backoff << a);
+			setDelay(`rewardClaim`, backoff << (a - 1));
 			chunkedFetchAll(
 				f.map(i => buildAttendRequest(resolved[i], resolved[i].token))
 			).map(readMeta)
