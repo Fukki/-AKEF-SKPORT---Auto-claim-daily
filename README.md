@@ -16,8 +16,8 @@
 
 
 **Automation Setup:**
-1. On the left sidebar, click the 🕝 Triggers (clock icon).
-2. Click + Add Trigger at the bottom-right corner.
+1. On the left sidebar, click the "🕝 Triggers" (clock icon).
+2. Click "+ Add Trigger" at the bottom-right corner.
    - Choose which function to run → "main" (by default)
    - Choose which deployment should run → "Head" (by default)
    - Select event source → "Time-driven"
