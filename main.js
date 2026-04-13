@@ -109,6 +109,7 @@ function main() {
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			resolved[i].playerCard = {
+				loginTime: j.base.lastLoginTime,
 				lastLogin: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
 				sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
 				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
@@ -142,7 +143,7 @@ function main() {
 function formatResult(p, meta, i) {
 	const nickname = p.nickname || `#${i + 1}`;
 	const serverName = p.serverName || "";
-	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [] };
+	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [], playerCard: p?.playerCard ?? {} };
 
 	if (!meta?.json) {
 		out.status = "💥 Invalid JSON / Fetch Failed";
@@ -163,37 +164,37 @@ function formatResult(p, meta, i) {
 				return r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown");
 			}).join("\n") || "No detailed reward info."
 			: "🎁 Successfully claimed";
-      out.msg += `\n${p.playerCard.lastLogin}\n${p.playerCard.sanity}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`;
 	} else {
 		out.status = `❌ Error (Code: ${j.code})`;
 		out.msg = j.message || "Unknown Error";
 	}
-	console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`);
+
+	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}\n${out.playerCard.lastLogin}\n${out.playerCard.sanity}\n${out.playerCard.battlePass}\n${out.playerCard.daily}\n${out.playerCard.weekly}`);
 	return out;
 }
 
 function discordPost(rows, colCount = Settings.discordColumn || 2) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const allSuccess = rows.every(r => r.success);
-	const nl = s => s.replace(/\r?\n/g, '\n\u2003'); 
-
-	//for combine image api and discord webhook image: {url: ""}
-	//const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))];
+	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
+	//const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))]; //for combine image api and discord webhook image: {url: ""}
 
 	const embed = {
 		title: "📝 Endfield Daily Check-in Report",
 		color: allSuccess ? 5763719 : 15548997,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
-		fields: rows.flatMap((r, i) => [
-			{
-				name: `👤 **${r.nickname} (${r.serverName})**`,
-				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg) || "None"}`,
-				inline: true
-			},
-			...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3
-				? [{ name: "\u200B", value: "\u200B", inline: false }]
+		fields: rows.flatMap((r, i) => {
+			return [
+				{
+					name: `👤 **${r.nickname} (${r.serverName})**`,
+					value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + (r.playerCard ? `\n🔑 Login: <t:${r.playerCard.loginTime}:R>\n${r.playerCard.sanity}\n${r.playerCard.battlePass}\n${r.playerCard.daily}\n${r.playerCard.weekly}`: "")) || "None"}`,
+					inline: true
+				},
+				...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3
+					? [{ name: "\u200B", value: "\u200B", inline: false }]
 				: [])
-		]),
+			];
+		}),
 		footer: { text: "Claimed on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
 		timestamp: new Date().toISOString()
 	};
@@ -238,10 +239,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 function telegramPost(rows) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
-	const msg = rows.map(r =>
-		`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n\u2003${r.status}\n<b>Response:</b>\n\u2003${nl(r.msg) || "None"}`
-	).join("\n------------------\n");
-
+	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b><b>Status:</b>\u2003${r.status}<b>Response:</b>\u2003${nl(r.msg + (r.playerCard ? `\n🔑 Login: ${r.playerCard.loginTime}${r.playerCard.sanity}${r.playerCard.battlePass}${r.playerCard.daily}${r.playerCard.weekly}` : "")) || "None"}`).join("\n------------------\n");
 	const reqs = telegramApp
 		.filter(tg => tg.notify && tg.telegramBotToken)
 		.map(tg => ({
