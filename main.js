@@ -239,7 +239,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 function telegramPost(rows) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
-	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b><b>Status:</b>\u2003${r.status}<b>Response:</b>\u2003${nl(r.msg + (r.playerCard ? `\n🔑 Login: ${r.playerCard.loginTime}${r.playerCard.sanity}${r.playerCard.battlePass}${r.playerCard.daily}${r.playerCard.weekly}` : "")) || "None"}`).join("\n------------------\n");
+	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b><b>Status:</b>\u2003${r.status}<b>Response:</b>\u2003${nl(r.msg + (r.playerCard ? `\n🔑 Login: ${r.playerCard.loginTime}\n${r.playerCard.sanity}\n${r.playerCard.battlePass}\n${r.playerCard.daily}\n${r.playerCard.weekly}` : "")) || "None"}`).join("\n------------------\n");
 	const reqs = telegramApp
 		.filter(tg => tg.notify && tg.telegramBotToken)
 		.map(tg => ({
