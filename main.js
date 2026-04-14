@@ -13,11 +13,19 @@ const discordApp = [
 	}
 ];
 
+const telegramApp = [
+	{
+		notify: false,
+		myTelegramID: 'xxxxx',
+		telegramBotToken: 'xxxxxx:xxxxxxxx'
+	}
+];
+
 const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	retry: { max: 10, initialBackoffMs: 500 },
+	retry: { max: 10, initialBackoffMs: 500, maxBackoffMs: 30000 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
@@ -335,7 +343,7 @@ function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
 
-const setDelay = (str, delay) => { console.warn(`${str} Retry in ${delay} ms`); Utilities.sleep(delay); };
+const setDelay = (str, delay) => (delay = Math.min(delay, Settings.retry?.maxBackoffMs ?? delay), console.warn(`${str} Retry in ${delay} ms`), Utilities.sleep(delay));
 
 const buildPlayerCard = (p, b = false) => p?.playerCard ? `\n${b ? p.playerCard.loginTime : p.playerCard.lastLogin}\n${p.playerCard.sanity}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`: "";
 
