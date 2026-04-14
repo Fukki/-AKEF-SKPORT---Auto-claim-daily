@@ -106,6 +106,11 @@ function main() {
 			).forEach((r, k) => resolved[f[k]].card = readMeta(r));
 		}
 
+		const timeAgo = ts => {
+			const d = Date.now()/1e3 - ts | 0, f = (n,u)=>`${n} ${u}${n-1?"s":""} ago`;
+			return d<60?f(d,"second"):d<3600?f(d/60|0,"minute"):d<86400?f(d/3600|0,"hour"):f((d/86400|0).toLocaleString(),"day");
+		};
+
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			resolved[i].playerCard = {
@@ -238,8 +243,9 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 
 function telegramPost(rows) {
 	rows = Array.isArray(rows) ? rows : [rows];
-	const nl = s => s.replace(/\r?\n/g, '\n\u2003');
-	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b><b>Status:</b>\u2003${r.status}<b>Response:</b>\u2003${nl(r.msg + (r.playerCard ? `\n🔑 Login: ${r.playerCard.loginTime}\n${r.playerCard.sanity}\n${r.playerCard.battlePass}\n${r.playerCard.daily}\n${r.playerCard.weekly}` : "")) || "None"}`).join("\n------------------\n");
+	const indent = "  ";
+	const nl = s => s.replace(/\r?\n/g, '\n' + indent);
+	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n${indent}${r.status}<b>Response:</b>\n${indent}${nl(r.msg + (r.playerCard ? `\n${r.playerCard.loginTime}\n${r.playerCard.sanity}\n${r.playerCard.battlePass}\n${r.playerCard.daily}\n${r.playerCard.weekly}` : "")) || "None"}`).join("\n------------------\n");
 	const reqs = telegramApp
 		.filter(tg => tg.notify && tg.telegramBotToken)
 		.map(tg => ({
@@ -276,14 +282,6 @@ function telegramPost(rows) {
 		if (next.length) setDelay(`telegramPost`, backoff << a);
 		pending = next;
 	}
-}
-
-function timeAgo(ts) {
-	const d = Math.floor(Date.now() / 1000) - Number(ts);
-	return d < 60 ? `${d}s ago`
-		: d < 3600 ? `${d/60|0}m ago`
-		: d < 86400 ? `${d/3600|0}h ago`
-		: `${(d/86400|0).toLocaleString()}d ago`;
 }
 
 function readMeta(r) {
