@@ -17,7 +17,7 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	retry: { max: 5, initialBackoffMs: 500 },
+	retry: { max: 10, initialBackoffMs: 500 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
@@ -114,7 +114,7 @@ function main() {
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			resolved[i].playerCard = {
-				loginTime: j.base.lastLoginTime,
+				loginTime: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
 				lastLogin: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
 				sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
 				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
@@ -174,7 +174,7 @@ function formatResult(p, meta, i) {
 		out.msg = j.message || "Unknown Error";
 	}
 
-	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}${out?.playerCard ? `\n${out.playerCard.lastLogin}\n${out.playerCard.sanity}\n${out.playerCard.battlePass}\n${out.playerCard.daily}\n${out.playerCard.weekly}` : ""}`);
+	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}${buildPlayerCard(out)}`);
 	return out;
 }
 
@@ -192,7 +192,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2) {
 			return [
 				{
 					name: `👤 **${r.nickname} (${r.serverName})**`,
-					value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + (r.playerCard ? `\n🔑 Login: <t:${r.playerCard.loginTime}:R>\n${r.playerCard.sanity}\n${r.playerCard.battlePass}\n${r.playerCard.daily}\n${r.playerCard.weekly}`: "")) || "None"}`,
+					value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + buildPlayerCard(r, true)) || "None"}`,
 					inline: true
 				},
 				...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3
@@ -245,7 +245,7 @@ function telegramPost(rows) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const indent = "  ";
 	const nl = s => s.replace(/\r?\n/g, '\n' + indent);
-	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n${indent}${r.status}<b>Response:</b>\n${indent}${nl(r.msg + (r.playerCard ? `\n${r.playerCard.loginTime}\n${r.playerCard.sanity}\n${r.playerCard.battlePass}\n${r.playerCard.daily}\n${r.playerCard.weekly}` : "")) || "None"}`).join("\n------------------\n");
+	const msg = rows.map(r =>`<b>👤 ${r.nickname} (${r.serverName})</b>\n<b>Status:</b>\n${indent}${r.status}<b>Response:</b>\n${indent}${nl(r.msg + buildPlayerCard(r)) || "None"}`).join("\n------------------\n");
 	const reqs = telegramApp
 		.filter(tg => tg.notify && tg.telegramBotToken)
 		.map(tg => ({
@@ -335,10 +335,9 @@ function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
 
-function setDelay(str, delay) {
-	console.warn(`${str} Retry in ${delay} ms`);
-	Utilities.sleep(delay);
-}
+const setDelay = (str, delay) => { console.warn(`${str} Retry in ${delay} ms`); Utilities.sleep(delay); };
+
+const buildPlayerCard = (p, b = false) => p?.playerCard ? `\n${b ? p.playerCard.loginTime : p.playerCard.lastLogin}\n${p.playerCard.sanity}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`: "";
 
 const buildHttpRequest = (url, method, headers, payload) => ({
 	url,
