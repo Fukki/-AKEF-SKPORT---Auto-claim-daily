@@ -174,7 +174,7 @@ function formatResult(p, meta, i) {
 		out.msg = j.message || "Unknown Error";
 	}
 
-	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}\n${out.playerCard.lastLogin}\n${out.playerCard.sanity}\n${out.playerCard.battlePass}\n${out.playerCard.daily}\n${out.playerCard.weekly}`);
+	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}${out?.playerCard ? `\n${out.playerCard.lastLogin}\n${out.playerCard.sanity}\n${out.playerCard.battlePass}\n${out.playerCard.daily}\n${out.playerCard.weekly}` : ""}`);
 	return out;
 }
 
