@@ -46,8 +46,8 @@ const Settings = {
 	},
 	chunkSize: 20,
 	discordColumn: 2,
-  discordUseEdit: true,
-  discordDailyPost: true,
+	discordUseEdit: true,
+	discordDailyPost: true,
 	successCodes: new Set([0, 10001])
 };
 
