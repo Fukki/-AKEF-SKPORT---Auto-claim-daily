@@ -109,14 +109,15 @@ function main() {
 		}
 
 		const timeAgo = ts => {
-			const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n - 1 ? "s" : ""}` : `${n} ${u}${n - 1 ? "s" : "" } ago`;
-			return a < 60 ? f(a, "second") : a < 3600 ? f(a / 60 | 0, "minute") : a < 86400 ? f(a / 3600 | 0, "hour") : f((a / 86400 | 0).toLocaleString(), "day");
+		  const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : "" } ago`;
+		  return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day");
 		};
 
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			const softCap = 240, isMaxed = j.dungeon.curStamina === j.dungeon.maxStamina, isBelowCap = j.dungeon.curStamina < softCap;
-			j.dungeon.maxTs = isBelowCap ? Math.floor(Date.now() / 1e3 + (softCap - j.dungeon.curStamina) * 360) : (j.dungeon.maxTs || 0);
+			const getSoftcapTime = (cur, cap) => ((t, r) => cur >= cap ? Math.floor(t / 1000) : Math.floor((Math.ceil(t / r) * r + (cap - cur - 1) * r) / 1000))(Date.now(), 360000);
+			j.dungeon.maxTs = isBelowCap ? getSoftcapTime(j.dungeon.curStamina, softCap) : j.dungeon.maxTs;
 			resolved[i].playerCard = {
 				loginTs: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
 				loginTime: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
