@@ -112,7 +112,7 @@ function main() {
 			const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n - 1 ? "s" : ""}` : `${n} ${u}${n - 1 ? "s" : "" } ago`;
 			return a < 60 ? f(a, "second") : a < 3600 ? f(a / 60 | 0, "minute") : a < 86400 ? f(a / 3600 | 0, "hour") : f((a / 86400 | 0).toLocaleString(), "day");
 		};
-		
+
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			const softCap = 240, isMaxed = j.dungeon.curStamina === j.dungeon.maxStamina, isBelowCap = j.dungeon.curStamina < softCap;
@@ -181,34 +181,31 @@ function formatResult(p, meta, i) {
 
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false, dailyPost = Settings.discordDailyPost || false) {
 	rows = Array.isArray(rows) ? rows : [rows];
-	const db = PropertiesService.getScriptProperties(), key = "discord_msgIds", hooks = discordApp.filter(d => d.notify && d.discordWebhook), k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
-	let msgMap = JSON.parse(db.getProperty(key) || "{}");
-	!useEdit && (msgMap = {}, db.deleteProperty(key)); useEdit && dailyPost && (d => { let s = JSON.parse(db.getProperty(key + "_meta") || "{}"); s.date !== d && (msgMap = {}, db.deleteProperty(key), db.setProperty(key + "_meta", JSON.stringify({date: d}))); })(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"));
-	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003');
-
-	const embed = {
+	const store = PropertiesService.getScriptProperties(), key = "discord_db", hooks = discordApp.filter(d => d.notify && d.discordWebhook), k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
+	const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
+	(!useEdit || (dailyPost && db.date !== d)) && (db = {date: d, msgMap: {}}, store.setProperty(key, JSON.stringify(db)));
+	//const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))]; //for combine image api and discord webhook image: {url: ""}
+  
+	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003'), embed = {
 		title: "📝 Endfield - Report",
 		color: allSuccess ? 5763719 : 15548997,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
-		fields: rows.flatMap((r, i) => [
-			{
-				name: `👤 **${r.nickname} (${r.serverName})**`,
-				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + buildPlayerCard(r, true)) || "None"}`,
-				inline: true
-			},
-			...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3 ? [{ name: "\u200B", value: "\u200B", inline: false }] : [])
-		]),
+		fields: rows.flatMap((r, i) => [{
+			name: `👤 **${r.nickname} (${r.serverName})**`,
+			value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + buildPlayerCard(r, true)) || "None"}`,
+			inline: true
+		}, ...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3 ? [{ name: "\u200B", value: "\u200B", inline: false }] : [])]),
 		footer: { text: "Updated on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
 		timestamp: new Date().toISOString()
 	};
 
 	const reqs = hooks.map(d => {
-		const keyHash = k(d.discordWebhook), id = msgMap[keyHash];
+		const h = k(d.discordWebhook), id = db.msgMap[h];
 		return {
 			url: useEdit && id ? `${d.discordWebhook}/messages/${id}` : d.discordWebhook + "?wait=true",
 			method: useEdit && id ? "patch" : "post",
-			contentType: "application/json",
-			muteHttpExceptions: true,
+			contentType: "application/json", muteHttpExceptions: true,
 			payload: JSON.stringify({
 				username: "Endfield Assistant",
 				avatar_url: "https://static.skport.com/image/common/20260403/f266b2fc7ac711dc39f89929ba254681.png",
@@ -219,26 +216,27 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	});
 
 	if (!reqs.length) return;
-
 	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
 	let pending = reqs.map((req, i) => ({ req, hook: hooks[i].discordWebhook, key: k(hooks[i].discordWebhook) }));
-	const results = new Array(reqs.length);
+	
 	for (let a = 0; a <= maxRetry && pending.length; a++) {
 		const responses = chunkedFetchAll(pending.map(p => p.req)), next = [];
 		responses.forEach((res, i) => {
-			const code = res.getResponseCode(), { hook, key } = pending[i];
-			(code === 204 || code === 200)
-				? (useEdit && code === 200 && (() => { try { msgMap[key] = JSON.parse(res.getContentText()).id; } catch {} })(), results[i] = res)
-				: (useEdit && code === 404
-					? (delete msgMap[key], pending[i].req.method = "post", pending[i].req.url = hook + "?wait=true", next.push(pending[i]))
-					: (a < maxRetry && (code === 429 || code >= 500))
-						? next.push(pending[i])
-						: results[i] = res);
+			const code = res.getResponseCode(), { hook, key: h } = pending[i];
+			if (code === 204 || code === 200) {
+				if (useEdit && code === 200) try { db.msgMap[h] = JSON.parse(res.getContentText()).id } catch(e) {}
+			} else if (useEdit && code === 404) {
+				delete db.msgMap[h];
+				pending[i].req.method = "post"; pending[i].req.url = hook + "?wait=true";
+				next.push(pending[i]);
+			} else if (a < maxRetry && (code === 429 || code >= 500)) {
+				next.push(pending[i]);
+			}
 		});
 		if (next.length) setDelay(`discordPost`, backoff << a);
 		pending = next;
 	}
-	useEdit && db.setProperty(key, JSON.stringify(msgMap));
+	useEdit && store.setProperty(key, JSON.stringify(db));
 }
 
 function readMeta(r) {
