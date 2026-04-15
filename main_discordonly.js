@@ -113,14 +113,18 @@ function main() {
 			return a < 60 ? f(a, "second") : a < 3600 ? f(a / 60 | 0, "minute") : a < 86400 ? f(a / 3600 | 0, "hour") : f((a / 86400 | 0).toLocaleString(), "day");
 		};
 
+
+
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
+			const softCap = 240, isMaxed = j.dungeon.curStamina === j.dungeon.maxStamina, isBelowCap = j.dungeon.curStamina < softCap;
+			j.dungeon.maxTs = isBelowCap ? (j.dungeon.maxTs - (j.dungeon.maxStamina - softCap) * 360) | 0 : j.dungeon.maxTs;
 			resolved[i].playerCard = {
 				loginTs: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
 				loginTime: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
 				sanity: `⚡️ Energy: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
-				maxSanityTs: `\u2003 → Full in: ${j.dungeon.curStamina === j.dungeon.maxStamina ? `Fulled` : `<t:${j.dungeon.maxTs}:R>`}`,
-				maxSanityTime: `\u2003 → Full in: ${j.dungeon.curStamina === j.dungeon.maxStamina ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
+				maxSanityTs: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : `<t:${j.dungeon.maxTs}:R>`}`,
+				maxSanityTime: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
 				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 				daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
 				weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
@@ -149,26 +153,30 @@ function main() {
 }
 
 function formatResult(p, meta, i) {
-	const nickname = p.nickname || `#${i + 1}`, serverName = p.serverName || "", acc = p.nickname || String(i), store = PropertiesService.getScriptProperties();
+	const nickname = p.nickname || `#${i + 1}`, serverName = p.serverName || "", acc = p.skGameRole || `#${i + 1}`, store = PropertiesService.getScriptProperties();
+	const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
 	let db = JSON.parse(store.getProperty("reward_db") || '{"date":"","items":{},"accounts":{}}');
-	db = (db.date === (d = new Date().toISOString().slice(0,10))) ? db : { date: d, items: {}, accounts: {} };
+	if (db.date !== d) db = { date: d, items: {}, accounts: {} }, store.setProperty("reward_db", JSON.stringify(db));
+
 	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [], playerCard: p?.playerCard ?? {} };
-	if (!meta?.json) return out.status="💥 Invalid JSON / Fetch Failed", out.msg=meta?.rawText||"No response", console.log(`[${nickname} (${serverName})] ${out.status}\n${out.msg}`), out;
+	if (!meta?.json) return out.status = "💥 Invalid JSON", out.msg = meta?.rawText || "No response", out;
+
 	const j = meta.json;
 	if (Settings.successCodes.has(j.code)) {
-		out.success = true;
-		out.status = j.code === 0 ? "✅ Check-in Successful" : "👌 Already Checked In";
-		const ids = j.code === 0
-			? [...new Set((j?.data?.awardIds || []).map(a => {
+		out.success = true, out.status = j.code === 0 ? "✅ Check-in Successful" : "👌 Already Checked In";
+		if (j.code === 0) {
+			const ids = [...new Set((j?.data?.awardIds || []).map(a => {
 				const id = String(a?.id ?? a), r = j.data.resourceInfoMap?.[id];
-				if (!db.items[id]) db.items[id] = [r ? `🎁 ${r.name} x${r.count}` : String(id || "Unknown"), r?.icon || ""];
-				return id;
-			}))]
-			: (db.accounts?.[acc] || []);
-		j.code === 0 && (db.accounts[acc] = ids, store.setProperty("reward_db", JSON.stringify(db)));
-		out.msg = ids.length ? ids.map(id => db.items[id]?.[0]).join("\n") : "🎁 Successfully claimed";
-		out.itemIcon_url = ids.map(id => db.items[id]?.[1]).filter(Boolean);
+				return r && (db.items[id] = [`🎁 ${r.name} x${r.count}`, r.icon || ""]), id;
+			}))];
+			db.accounts[acc] = ids, store.setProperty("reward_db", JSON.stringify(db));
+			out.msg = ids.map(id => db.items[id]?.[0] || `ID: ${id}`).join("\n"), out.itemIcon_url = ids.map(id => db.items[id]?.[1]).filter(Boolean);
+		} else {
+			const ids = db.accounts[acc] || [];
+			out.msg = ids.length ? ids.map(id => db.items[id]?.[0]).join("\n") : "🎁 Successfully claimed", out.itemIcon_url = ids.map(id => db.items[id]?.[1]).filter(Boolean);
+		}
 	} else out.status = `❌ Error (Code: ${j.code})`, out.msg = j.message || "Unknown Error";
+
 	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}${buildPlayerCard(out)}`);
 	return out;
 }
@@ -177,7 +185,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	rows = Array.isArray(rows) ? rows : [rows];
 	const db = PropertiesService.getScriptProperties(), key = "discord_msgIds", hooks = discordApp.filter(d => d.notify && d.discordWebhook), k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
 	let msgMap = JSON.parse(db.getProperty(key) || "{}");
-	!useEdit && (msgMap = {}, db.deleteProperty(key)); dailyPost && (d => { let s = JSON.parse(db.getProperty(key + "_meta") || "{}"); s.date !== d && (msgMap = {}, db.deleteProperty(key), db.setProperty(key + "_meta", JSON.stringify({ date: d }))); })(new Date().toISOString().slice(0, 10));
+	!useEdit && (msgMap = {}, db.deleteProperty(key)); useEdit && dailyPost && (d => { let s = JSON.parse(db.getProperty(key + "_meta") || "{}"); s.date !== d && (msgMap = {}, db.deleteProperty(key), db.setProperty(key + "_meta", JSON.stringify({date: d}))); })(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"));
 	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003');
 
 	const embed = {
