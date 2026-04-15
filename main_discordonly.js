@@ -112,9 +112,7 @@ function main() {
 			const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n - 1 ? "s" : ""}` : `${n} ${u}${n - 1 ? "s" : "" } ago`;
 			return a < 60 ? f(a, "second") : a < 3600 ? f(a / 60 | 0, "minute") : a < 86400 ? f(a / 3600 | 0, "hour") : f((a / 86400 | 0).toLocaleString(), "day");
 		};
-
-
-
+		
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			const softCap = 240, isMaxed = j.dungeon.curStamina === j.dungeon.maxStamina, isBelowCap = j.dungeon.curStamina < softCap;
