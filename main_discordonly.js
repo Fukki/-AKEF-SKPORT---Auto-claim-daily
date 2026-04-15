@@ -120,7 +120,7 @@ function main() {
 				loginTime: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
 				sanity: `⚡️ Energy: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
 				maxSanityTs: `\u2003 → Full in: ${j.dungeon.curStamina === j.dungeon.maxStamina ? `Fulled` : `<t:${j.dungeon.maxTs}:R>`}`,
-        maxSanityTime: `\u2003 → Full in: ${j.dungeon.curStamina === j.dungeon.maxStamina ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
+				maxSanityTime: `\u2003 → Full in: ${j.dungeon.curStamina === j.dungeon.maxStamina ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
 				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 				daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
 				weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
