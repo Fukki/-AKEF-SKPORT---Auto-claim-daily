@@ -115,16 +115,20 @@ function main() {
 		}
 
 		const timeAgo = ts => {
-			const d = Date.now()/1e3 - ts | 0, f = (n,u)=>`${n} ${u}${n-1?"s":""} ago`;
-			return d<60?f(d,"second"):d<3600?f(d/60|0,"minute"):d<86400?f(d/3600|0,"hour"):f((d/86400|0).toLocaleString(),"day");
+			const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n - 1 ? "s" : ""}` : `${n} ${u}${n - 1 ? "s" : "" } ago`;
+			return a < 60 ? f(a, "second") : a < 3600 ? f(a / 60 | 0, "minute") : a < 86400 ? f(a / 3600 | 0, "hour") : f((a / 86400 | 0).toLocaleString(), "day");
 		};
 
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
+			const softCap = 240, isMaxed = j.dungeon.curStamina === j.dungeon.maxStamina, isBelowCap = j.dungeon.curStamina < softCap;
+			j.dungeon.maxTs = isBelowCap ? (j.dungeon.maxTs - (j.dungeon.maxStamina - softCap) * 360) | 0 : j.dungeon.maxTs;
 			resolved[i].playerCard = {
-				loginTime: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
-				lastLogin: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
-				sanity: `⚡️ EN: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
+				loginTs: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
+				loginTime: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
+				sanity: `⚡️ Energy: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
+				maxSanityTs: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : `<t:${j.dungeon.maxTs}:R>`}`,
+				maxSanityTime: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
 				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 				daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
 				weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
@@ -345,7 +349,7 @@ function failedIdx(arr) {
 
 const setDelay = (str, delay) => (delay = Math.min(delay, Settings.retry?.maxBackoffMs ?? delay), console.warn(`${str} Retry in ${delay} ms`), Utilities.sleep(delay));
 
-const buildPlayerCard = (p, b = false) => p?.playerCard ? `\n${b ? p.playerCard.loginTime : p.playerCard.lastLogin}\n${p.playerCard.sanity}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`: "";
+const buildPlayerCard = (p, b = false) => p?.playerCard ? `\n${b ? p.playerCard.loginTs : p.playerCard.loginTime}\n${p.playerCard.sanity}\n${b ? p.playerCard.maxSanityTs : p.playerCard.maxSanityTime}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}`: "";
 
 const buildHttpRequest = (url, method, headers, payload) => ({
 	url,
