@@ -153,9 +153,9 @@ function main() {
 
 function formatResult(p, meta, i) {
 	const nickname = p.nickname || `#${i + 1}`, serverName = p.serverName || "", acc = p.skGameRole || `#${i + 1}`, store = PropertiesService.getScriptProperties();
-	const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
-	let db = JSON.parse(store.getProperty("reward_db") || '{"date":"","items":{},"accounts":{}}');
-	if (db.date !== d) db = { date: d, items: {}, accounts: {} }, store.setProperty("reward_db", JSON.stringify(db));
+	const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"), key = "reward_db";
+	let db = JSON.parse(store.getProperty(key) || '{"date":"","items":{},"accounts":{}}');
+	if (db.date !== d) db = { date: d, items: {}, accounts: {} }, store.setProperty(key, JSON.stringify(db));
 
 	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [], playerCard: p?.playerCard ?? {} };
 	if (!meta?.json) return out.status = "💥 Invalid JSON", out.msg = meta?.rawText || "No response", out;
@@ -168,7 +168,7 @@ function formatResult(p, meta, i) {
 				const id = String(a?.id ?? a), r = j.data.resourceInfoMap?.[id];
 				return r && (db.items[id] = [`🎁 ${r.name} x${r.count}`, r.icon || ""]), id;
 			}))];
-			db.accounts[acc] = ids, store.setProperty("reward_db", JSON.stringify(db));
+			db.accounts[acc] = ids, store.setProperty(key, JSON.stringify(db));
 			out.msg = ids.map(id => db.items[id]?.[0] || `ID: ${id}`).join("\n"), out.itemIcon_url = ids.map(id => db.items[id]?.[1]).filter(Boolean);
 		} else {
 			const ids = db.accounts[acc] || [];
