@@ -116,7 +116,7 @@ function main() {
 		cardIdx.forEach(i => {
 			const j = resolved[i].card?.json?.data?.detail;
 			const softCap = 240, isMaxed = j.dungeon.curStamina === j.dungeon.maxStamina, isBelowCap = j.dungeon.curStamina < softCap;
-			const getSoftcapTime = (cur, cap) => ((t, r) => cur >= cap ? Math.floor(t / 1000) : Math.floor((Math.ceil(t / r) * r + (cap - cur - 1) * r) / 1000))(Date.now(), 360000);
+			const getSoftcapTime = (cur, cap = 240, regenMs = 432000) => Math.floor(cur >= cap ? Date.now() : (Math.ceil(Date.now() / regenMs) * regenMs + (cap - cur - 1) * regenMs) / 1000);
 			j.dungeon.maxTs = isBelowCap ? getSoftcapTime(j.dungeon.curStamina, softCap) : j.dungeon.maxTs;
 			resolved[i].playerCard = {
 				loginTs: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
