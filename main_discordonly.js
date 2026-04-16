@@ -237,7 +237,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 				next.push(pending[i]);
 			} else if (a < maxRetry && (code === 429 || code >= 500)) next.push(pending[i]);
 		});
-		if (next.length) Utilities.sleep(backoff << a); // เปลี่ยนจาก setDelay เป็น sleep เพื่อความง่ายในฟังก์ชันเดียว
+		if (next.length) setDelay(`discordPost`, backoff << a);
 		pending = next;
 	}
 	useEdit && store.setProperty(key, JSON.stringify(db));
