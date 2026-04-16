@@ -17,7 +17,6 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	userTimezone: "UTC+7", //Bangkok (TH) 
 	serverTimezone: "UTC+8", //Asia Server
 	reward_db: "reward_db",
 	discord_db: "discord_db",
