@@ -17,6 +17,13 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
+	userTimezone: "UTC+7", //Bangkok (TH) 
+	serverTimezone: "UTC+8", //Asia Server
+	reward_db: "reward_db",
+	discord_db: "discord_db",
+	discordColumn: 2,
+	discordUseEdit: true,
+	discordDailyPost: true,
 	retry: { max: 15, initialBackoffMs: 500, maxBackoffMs: 10000 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
@@ -45,9 +52,6 @@ const Settings = {
 		"Sec-Fetch-Site": "same-site"
 	},
 	chunkSize: 20,
-	discordColumn: 2,
-	discordUseEdit: true,
-	discordDailyPost: true,
 	successCodes: new Set([0, 10001])
 };
 
@@ -152,10 +156,11 @@ function main() {
 }
 
 function formatResult(p, meta, i) {
-	const nickname = p.nickname || `#${i + 1}`, serverName = p.serverName || "", acc = p.skGameRole || `#${i + 1}`, store = PropertiesService.getScriptProperties();
-	const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"), key = "reward_db";
+	const store = PropertiesService.getScriptProperties(), nickname = p.nickname || `#${i + 1}`, serverName = p.serverName || "", acc = p.skGameRole || `#${i + 1}`;
+	const d = Utilities.formatDate(new Date(), Settings.serverTimezone, "yyyy-MM-dd"), key = Settings.reward_db;
+
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","items":{},"accounts":{}}');
-	if (db.date !== d) db = { date: d, items: {}, accounts: {} }, store.setProperty(key, JSON.stringify(db));
+	if (db.date !== d) store.setProperty(key, JSON.stringify(db = { date: d, items: {}, accounts: {} }));
 
 	const out = { nickname, serverName, success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [], playerCard: p?.playerCard ?? {} };
 	if (!meta?.json) return out.status = "💥 Invalid JSON", out.msg = meta?.rawText || "No response", out;
@@ -176,25 +181,25 @@ function formatResult(p, meta, i) {
 		}
 	} else out.status = `❌ Error (Code: ${j.code})`, out.msg = j.message || "Unknown Error";
 
-	console.log(`[${nickname} (${serverName})]\n${out.status}\n${out.msg}${buildPlayerCard(out)}`);
+	console.log(`Server Time: ${Utilities.formatDate(new Date(), Settings.serverTimezone, "HH:mm:ss")}\n[${nickname} (${serverName})]\n${out.status}\n${out.msg}${typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(out) : ""}`);
 	return out;
 }
 
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false, dailyPost = Settings.discordDailyPost || false) {
 	rows = Array.isArray(rows) ? rows : [rows];
-	const store = PropertiesService.getScriptProperties(), key = "discord_db", hooks = discordApp.filter(d => d.notify && d.discordWebhook), k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
-	const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db, hooks = discordApp.filter(d => d.notify && d.discordWebhook), k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
+	const d = Utilities.formatDate(new Date(), Settings.serverTimezone, "yyyy-MM-dd");
+	
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
-	(!useEdit || (dailyPost && db.date !== d)) && (db = {date: d, msgMap: {}}, store.setProperty(key, JSON.stringify(db)));
-	//const iconUrls = [...new Set(rows.flatMap(r => r.itemIcon_url).filter(Boolean))]; //for combine image api and discord webhook image: {url: ""}
-  
+	if (!useEdit || (dailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
+
 	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003'), embed = {
 		title: "📝 Endfield - Report",
 		color: allSuccess ? 5763719 : 15548997,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: rows.flatMap((r, i) => [{
 			name: `👤 **${r.nickname} (${r.serverName})**`,
-			value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + buildPlayerCard(r, true)) || "None"}`,
+			value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + (typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(r, true) : "")) || "None"}`,
 			inline: true
 		}, ...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3 ? [{ name: "\u200B", value: "\u200B", inline: false }] : [])]),
 		footer: { text: "Updated on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
@@ -230,11 +235,9 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 				delete db.msgMap[h];
 				pending[i].req.method = "post"; pending[i].req.url = hook + "?wait=true";
 				next.push(pending[i]);
-			} else if (a < maxRetry && (code === 429 || code >= 500)) {
-				next.push(pending[i]);
-			}
+			} else if (a < maxRetry && (code === 429 || code >= 500)) next.push(pending[i]);
 		});
-		if (next.length) setDelay(`discordPost`, backoff << a);
+		if (next.length) Utilities.sleep(backoff << a); // เปลี่ยนจาก setDelay เป็น sleep เพื่อความง่ายในฟังก์ชันเดียว
 		pending = next;
 	}
 	useEdit && store.setProperty(key, JSON.stringify(db));
