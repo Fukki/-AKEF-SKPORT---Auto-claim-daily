@@ -125,7 +125,7 @@ function main() {
 				loginTs: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
 				loginTime: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
 				sanity: `⚡️ Energy: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
-				maxSanityTs: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : `<t:${j.dungeon.maxTs}:R>`}`,
+				maxSanityTs: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `\`Fulled\`` : `<t:${j.dungeon.maxTs}:R>`}`,
 				maxSanityTime: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
 				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
 				daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
@@ -190,7 +190,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	const d = Utilities.formatDate(new Date(), Settings.serverTimezone, "yyyy-MM-dd");
 	
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
-	if (!useEdit || (dailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
+	if (!useEdit || (useEdit && dailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
 
 	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003'), embed = {
 		title: "📝 Endfield - Report",
