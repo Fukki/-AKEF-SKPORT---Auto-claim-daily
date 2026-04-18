@@ -17,7 +17,7 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	serverTimezone: "UTC+8", //Asia (UTC+8) / Americas, Europe (UTC-5)
+	serverTimezone: "Asia/Singapore", //Asia/Singapore (UTC+8) / America/New_York (UTC-5)
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -156,7 +156,7 @@ function main() {
 
 function formatResult(p, meta, i) {
 	const store = PropertiesService.getScriptProperties(), nickname = p.nickname || `#${i + 1}`, serverName = p.serverName || "", acc = p.skGameRole || `#${i + 1}`;
-	const d = Utilities.formatDate(new Date(), Settings.serverTimezone, "yyyy-MM-dd"), key = Settings.reward_db;
+	const d = tzDate(), key = Settings.reward_db;
 
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","items":{},"accounts":{}}');
 	if (db.date !== d) store.setProperty(key, JSON.stringify(db = { date: d, items: {}, accounts: {} }));
@@ -180,14 +180,14 @@ function formatResult(p, meta, i) {
 		}
 	} else out.status = `❌ Error (Code: ${j.code})`, out.msg = j.message || "Unknown Error";
 
-	console.log(`Server Time: ${Utilities.formatDate(new Date(), Settings.serverTimezone, "HH:mm:ss")}\n[${nickname} (${serverName})]\n${out.status}\n${out.msg}${typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(out) : ""}`);
+	console.log(`Server Time: ${tzDate(Settings.serverTimezone, 0, "HH:mm:ss")}\n[${nickname} (${serverName})]\n${out.status}\n${out.msg}${typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(out) : ""}`);
 	return out;
 }
 
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false, dailyPost = Settings.discordDailyPost || false) {
 	rows = Array.isArray(rows) ? rows : [rows];
 	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db, hooks = discordApp.filter(d => d.notify && d.discordWebhook), k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
-	const d = Utilities.formatDate(new Date(), Settings.serverTimezone, "yyyy-MM-dd");
+	const d = tzDate();
 	
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
 	if (!useEdit || (useEdit && dailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
@@ -292,6 +292,12 @@ function chunkedFetchAll(requests) {
 function failedIdx(arr) {
 	return arr.map((m, i) => (!m?.json || (m.json.code !== 0 && m.json.code !== 10001) ? i : -1)).filter(i => i >= 0);
 }
+
+const tzDate = (tz = Settings.serverTimezone, resetHour = 0, format = "yyyy-MM-dd") => {
+	const now = new Date();
+	if (Number(Utilities.formatDate(now, tz, "H")) < resetHour) now.setDate(now.getDate() - 1);
+	return Utilities.formatDate(now, tz, format);
+};
 
 const setDelay = (str, delay) => (delay = Math.min(delay, Settings.retry?.maxBackoffMs ?? delay), console.warn(`${str} Retry in ${delay} ms`), Utilities.sleep(delay));
 
