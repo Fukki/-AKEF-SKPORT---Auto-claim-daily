@@ -118,21 +118,25 @@ function main() {
 		  const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : "" } ago`;
 		  return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day");
 		};
+    
+		const getRegenTime = (cur, cap, regenMs = 432000) => Math.floor(cur >= cap ? Date.now() : (Math.ceil(Date.now() / regenMs) * regenMs + (cap - cur - 1) * regenMs) / 1000);
 
 		cardIdx.forEach(i => {
-			const j = resolved[i].card?.json?.data?.detail;
-			const softCap = 240, isMaxed = +j.dungeon.curStamina >= +j.dungeon.maxStamina, isBelowCap = +j.dungeon.curStamina < softCap;
-			const getRegenTime = (cur, cap, regenMs = 432000) => Math.floor(cur >= cap ? Date.now() : (Math.ceil(Date.now() / regenMs) * regenMs + (cap - cur - 1) * regenMs) / 1000);
-			j.dungeon.maxTs = isBelowCap ? getRegenTime(j.dungeon.curStamina, softCap) : getRegenTime(j.dungeon.curStamina, j.dungeon.maxStamina);
+			const j = resolved[i].card?.json?.data?.detail,
+				d = j.dungeon, b = j.base, bp = j.bpSystem, dm = j.dailyMission, wm = j.weeklyMission,
+				cur = +d.curStamina, max = +d.maxStamina, cap = 240,
+				full = cur >= max, below = cur < cap,
+				capTs = getRegenTime(cur, cap), maxTs = getRegenTime(cur, max);
+
 			resolved[i].playerCard = {
-				loginTs: `🔑 Login: <t:${j.base.lastLoginTime}:R>`,
-				loginTime: `🔑 Login: ${timeAgo(j.base.lastLoginTime)}`,
-				sanity: `⚡️ Energy: ${j.dungeon.curStamina}/${j.dungeon.maxStamina}`,
-				maxSanityTs: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : `<t:${j.dungeon.maxTs}:R>`}`,
-				maxSanityTime: `\u2003 → ${isBelowCap ? softCap : `Full`} in: ${isMaxed ? `Fulled` : timeAgo(j.dungeon.maxTs)}`,
-				battlePass: `🗡️ BP: ${j.bpSystem.curLevel}/${j.bpSystem.maxLevel}`,
-				daily: `🔄 Daily: ${j.dailyMission.dailyActivation}/${j.dailyMission.maxDailyActivation}`,
-				weekly: `🔁 Weekly: ${j.weeklyMission.score}/${j.weeklyMission.total}`
+				loginTs: `🔑 Login: <t:${b.lastLoginTime}:R>`,
+				loginTime: `🔑 Login: ${timeAgo(b.lastLoginTime)}`,
+				sanity: `⚡️ Energy: ${cur}/${max}`,
+				maxSanityTs: `\u2003 → ${cap} in: ${below ? `<t:${capTs}:R>` : `\`Fulled\``}\n\u2003 → ${max} in: ${full ? `\`Fulled\`` : `<t:${maxTs}:R>`}`,
+				maxSanityTime: `\u2003 → ${cap} in: ${below ? timeAgo(capTs) : `Fulled`}\n\u2003 → ${max} in: ${full ? `Fulled` : timeAgo(maxTs)}`,
+				battlePass: `🗡️ BP: ${bp.curLevel}/${bp.maxLevel}`,
+				daily: `🔄 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}`,
+				weekly: `🔁 Weekly: ${wm.score}/${wm.total}`
 			};
 		});
 	}
