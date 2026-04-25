@@ -17,13 +17,20 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
+	//userTimezone: "Asia/Bangkok",
+	userTimezone: Session.getScriptTimeZone(),
 	serverTimezone: "Asia/Singapore", //Asia/Singapore (UTC+8) / America/New_York (UTC-5)
+	serverResetTime: "04:00:00",
+	serverResetWeekly: 1, //Monday
+	serverResetShop: 5, //Friday
+	serverBPStartDate: "2026-04-17",
+	serverBPCycle: 35, //every 35 days
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
 	discordUseEdit: true,
 	discordDailyPost: true,
-	retry: { max: 15, initialBackoffMs: 500, maxBackoffMs: 10000 },
+	retry: { max: 15, initialBackoffMs: 500, maxBackoffMs: 5000 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
@@ -129,11 +136,11 @@ function main() {
 				loginTs: `🔑 Login: <t:${b.lastLoginTime}:R>`,
 				loginTime: `🔑 Login: ${timeAgo(b.lastLoginTime)}`,
 				sanity: `⚡️ Energy: ${cur}/${max}`,
-				maxSanityTs: `\u2003 → ${cap} in: ${below ? `<t:${capTs}:R>` : `\`Fulled\``}\n\u2003 → ${max} in: ${full ? `\`Fulled\`` : `<t:${maxTs}:R>`}`,
-				maxSanityTime: `\u2003 → ${cap} in: ${below ? timeAgo(capTs) : `Fulled`}\n\u2003 → ${max} in: ${full ? `Fulled` : timeAgo(maxTs)}`,
-				battlePass: `🗡️ BP: ${bp.curLevel}/${bp.maxLevel}`,
-				daily: `🔄 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}`,
-				weekly: `🔁 Weekly: ${wm.score}/${wm.total}`
+				maxSanityTs: `\u2003 → ${cap}: ${below ? `<t:${capTs}:R>` : `\`Fulled\``}\n\u2003 → ${max}: ${full ? `\`Fulled\`` : `<t:${maxTs}:R>`}`,
+				maxSanityTime: `\u2003 → ${cap}: ${below ? timeAgo(capTs) : `Fulled`}\n\u2003 → ${max}: ${full ? `Fulled` : timeAgo(maxTs)}`,
+				battlePass: `🌟 BP: ${bp.curLevel}/${bp.maxLevel}`,
+				daily: `🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}`,
+				weekly: `📅 Weekly: ${wm.score}/${wm.total}`
 			};
 		});
 	}
@@ -196,15 +203,65 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
 	if (!useEdit || (useEdit && dailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
 
+	const getTzDate = (d, tz) => new Date(Utilities.formatDate(new Date(d), tz, "MMMM dd, yyyy HH:mm:ss"));
+
+	const toUserUnix = (svrDate) => {
+		const getOff = (tz) => {
+			const s = Utilities.formatDate(new Date(), tz, "Z");
+			return (s[0] === "+" ? 1 : -1) * (parseInt(s.slice(1, 3)) * 60 + parseInt(s.slice(3, 5)));
+		};
+		const diffMs = (getOff(Settings.serverTimezone) - getOff(Settings.userTimezone)) * 60000;
+		return Math.floor((svrDate.getTime() - diffMs) / 1000);
+	};
+
+	const getDailyNextReset = () => {
+		const curS = getTzDate(new Date(), Settings.serverTimezone), [h, m, s] = Settings.serverResetTime.split(':'), tgtS = new Date(curS);
+		tgtS.setHours(h, m, s, 0);
+		if (curS >= tgtS) tgtS.setDate(tgtS.getDate() + 1);
+		return toUserUnix(tgtS);
+	};
+
+	const getWeeklyNextReset = (n) => {
+		const curS = getTzDate(new Date(), Settings.serverTimezone), [h, m, s] = Settings.serverResetTime.split(':'), tgtS = new Date(curS);
+		tgtS.setHours(h, m, s, 0);
+		let d = (n - tgtS.getDay() + 7) % 7 || 7;
+		if (d === 7 && curS < tgtS) d = 0;
+		tgtS.setDate(tgtS.getDate() + d);
+		return toUserUnix(tgtS);
+	};
+
+	const getNextCycleReset = () => {
+		const curS = getTzDate(new Date(), Settings.serverTimezone), cMs = Settings.serverBPCycle * 864e5;
+		const gmt = "GMT" + Utilities.formatDate(new Date(), Settings.serverTimezone, "Z");
+		const baseS = getTzDate(new Date(`${Settings.serverBPStartDate.replace(/-/g, '/')} ${Settings.serverResetTime} ${gmt}`), Settings.serverTimezone);
+		return toUserUnix(new Date(baseS.getTime() + Math.ceil((curS.getTime() - baseS.getTime()) / cMs) * cMs));
+	};
+
 	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003'), embed = {
 		title: "📝 Endfield - Report",
-		color: allSuccess ? 5763719 : 15548997,
+		color: ((ts, ok) => ok ? ({0:0xFF0000,1:0xFFFF00,2:0xFF69B4,3:0x00A86B,4:0xFFA500,5:0x00BFFF,6:0x800080})[new Date(ts).getDay()] : 0x2F3136)(d, allSuccess),
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
-		fields: rows.flatMap((r, i) => [{
-			name: `👤 **${r.nickname} (${r.serverName})**`,
-			value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + (typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(r, true) : "")) || "None"}`,
-			inline: true
-		}, ...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3 ? [{ name: "\u200B", value: "\u200B", inline: false }] : [])]),
+		fields: [
+				{
+					name: "**Server Reset**",
+					value: `🌸 Daily: <t:${getDailyNextReset()}:R>\n🗡️ Arsenal: <t:${getWeeklyNextReset(Settings.serverResetShop)}:R>`,
+					inline: true
+				}, 
+				{
+					name: "\u200B",
+					value: `📅 Weekly: <t:${getWeeklyNextReset(Settings.serverResetWeekly)}:R>\n🌟 BP: <t:${getNextCycleReset()}:R>`,
+					inline: true
+				},
+				{name: "", value: "", inline: false},
+				...rows.flatMap((r, i) => [{
+						name: `👤 **${r.nickname} (${r.serverName})**`,
+						value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${nl(r.msg + (typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(r, true) : "")) || "None"}`,
+						inline: true
+				}, ...((i + 1) % colCount === 0 && i + 1 < rows.length && colCount < 3
+						? [{ name: "", value: "", inline: false }]
+						: [])
+				])
+		],
 		footer: { text: "Updated on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
 		timestamp: new Date().toISOString()
 	};
