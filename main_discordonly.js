@@ -214,6 +214,12 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		return Math.floor((svrDate.getTime() - diffMs) / 1000);
 	};
 
+	const getServerNow = () => {
+		const now = new Date(), s = Utilities.formatDate(now, Settings.serverTimezone, "Z");
+		const off = (s[0] === "+" ? 1 : -1) * (parseInt(s.slice(1, 3)) * 60 + parseInt(s.slice(3, 5)));
+		return Math.floor(new Date(Utilities.formatDate(now, "GMT", "MMMM dd, yyyy HH:mm:ss")).getTime() / 1000) + (off * 60);
+	};
+
 	const getDailyNextReset = () => {
 		const curS = getTzDate(new Date(), Settings.serverTimezone), [h, m, s] = Settings.serverResetTime.split(':'), tgtS = new Date(curS);
 		tgtS.setHours(h, m, s, 0);
@@ -238,7 +244,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	};
 
 	const allSuccess = rows.every(r => r.success), nl = s => s.replace(/\r?\n/g, '\n\u2003'), embed = {
-		title: "📝 Endfield - Report",
+		title: `📝 Endfield - Report [<t:${getServerNow()}:d>]`,
 		color: ((ts, ok) => ok ? ({0:0xFF0000,1:0xFFFF00,2:0xFF69B4,3:0x00A86B,4:0xFFA500,5:0x00BFFF,6:0x800080})[new Date(ts).getDay()] : 0x2F3136)(d, allSuccess),
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
@@ -248,7 +254,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 					inline: true
 				}, 
 				{
-					name: "\u200B",
+					name: `\u200B`,
 					value: `📅 Weekly: <t:${getWeeklyNextReset(Settings.serverResetWeekly)}:R>\n🌟 BP: <t:${getNextCycleReset()}:R>`,
 					inline: true
 				},
