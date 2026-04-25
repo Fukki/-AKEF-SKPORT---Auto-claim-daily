@@ -215,9 +215,8 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	};
 
 	const getServerNow = () => {
-		const now = new Date(), s = Utilities.formatDate(now, Settings.serverTimezone, "Z");
-		const off = (s[0] === "+" ? 1 : -1) * (parseInt(s.slice(1, 3)) * 60 + parseInt(s.slice(3, 5)));
-		return Math.floor(new Date(Utilities.formatDate(now, "GMT", "MMMM dd, yyyy HH:mm:ss")).getTime() / 1000) + (off * 60);
+		const nowStr = Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss");
+		return Math.floor(new Date(nowStr).getTime() / 1000);
 	};
 
 	const getDailyNextReset = () => {
