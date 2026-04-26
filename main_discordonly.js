@@ -59,7 +59,6 @@ function main() {
 	if (!profiles.length) return [];
 	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
 
-	// 1. Refresh Token
 	let tokens = chunkedFetchAll(profiles.map(buildTokenRefresh)).map(r => ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 	for (let a = 1, f; (f = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
 		setDelay(`refreshToken`, backoff << (a - 1));
@@ -70,7 +69,6 @@ function main() {
 		? { ...p, token: tokens[i], skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "", playerCard: {} }
 		: { ...p, token: tokens[i] });
 
-	// 2. Player Binding
 	const bindIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (bindIdx.length) {
 		chunkedFetchAll(bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
@@ -89,7 +87,6 @@ function main() {
 		});
 	}
 
-	// 3. Player Card Info
 	const cardIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (cardIdx.length) {
 		chunkedFetchAll(cardIdx.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[cardIdx[k]].card = readMeta(r));
@@ -117,7 +114,6 @@ function main() {
 		});
 	}
 
-	// 4. Attendance
 	const reqIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (reqIdx.length) {
 		chunkedFetchAll(reqIdx.map(i => buildAttendRequest(resolved[i], resolved[i].token))).forEach((r, k) => resolved[reqIdx[k]].meta = readMeta(r));
@@ -143,7 +139,7 @@ function formatResult(p, meta, i) {
 	const j = meta.json, acc = p.skGameRole || `#${i + 1}`;
 	if (Settings.successCodes.has(j.code)) {
 		out.success = true;
-		out.status = j.code === 0 ? "✅ Check-in Successful" : "👌 Already Checked In";
+		out.status = j.code === 0 ? "✅ Check-in Successful" : "✅ Already Checked In";
 		const ids = j.code === 0 ? [...new Set((j.data?.awardIds || []).map(a => {
 			const id = String(a?.id ?? a), r = j.data.resourceInfoMap?.[id];
 			if (r) db.items[id] = [`🎁 ${r.name} x${r.count}`, r.icon || ""];
@@ -165,33 +161,40 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
 	if (!useEdit || (useEdit && Settings.discordDailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
 
-	const getOff = tz => { const s = Utilities.formatDate(new Date(), tz, "Z"); return (s[0] === "+" ? 1 : -1) * (parseInt(s.slice(1, 3)) * 60 + parseInt(s.slice(3, 5))); };
-	const toUserUnix = svrDate => Math.floor((svrDate.getTime() - (getOff(Settings.serverTimezone) - getOff(Settings.userTimezone)) * 60000) / 1000);
-	
-	const getReset = (type, val) => {
-		const curS = new Date(Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss")), [h, m, s] = Settings.serverResetTime.split(':'), tgtS = new Date(curS);
+	const getReset = (type, opt = {}) => {
+		const { tz = Settings.serverTimezone, rt = Settings.serverResetTime, wd = 1, start = Settings.serverBPStartDate, cyc = Settings.serverBPCycle, unix = true, uTz = Settings.userTimezone } = opt;
+		const curS = tz ? new Date(Utilities.formatDate(new Date(), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date();
+		const [h, m, s] = rt.split(':').map(Number), tgtS = new Date(curS);
 		tgtS.setHours(h, m, s, 0);
 
-		if (type === 'daily') return toUserUnix(curS >= tgtS ? new Date(tgtS.setDate(tgtS.getDate() + 1)) : tgtS);
-		if (type === 'weekly') {
-			let d = (val - tgtS.getDay() + 7) % 7 || 7;
-			return toUserUnix(new Date(tgtS.setDate(tgtS.getDate() + (d === 7 && curS < tgtS ? 0 : d))));
-		}
-		if (type === 'cycle') {
-			const p = Settings.serverBPStartDate.split("-"), baseS = new Date(Utilities.formatDate(new Date(p[0], p[1] - 1, p[2]), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss"));
-			baseS.setHours(h, m, s, 0);
-			return toUserUnix(new Date(baseS.getTime() + (Math.floor((curS.getTime() - baseS.getTime()) / (Settings.serverBPCycle * 864e5)) + 1) * Settings.serverBPCycle * 864e5));
-		}
-		return toUserUnix(tgtS);
+		const getToUnix = (date) => {
+			if (!unix) return date;
+			if (!tz) return Math.floor(date.getTime() / 1000);
+			const gO = t => { const z = Utilities.formatDate(new Date(), t, "Z"); return (z[0] === "+" ? 1 : -1) * (parseInt(z.slice(1, 3)) * 60 + parseInt(z.slice(3, 5))); };
+			return Math.floor((date.getTime() - (gO(tz) - gO(uTz)) * 60000) / 1000);
+		};
+
+		const logic = {
+			daily: () => curS >= tgtS ? new Date(tgtS.getTime() + 864e5) : tgtS,
+			weekly: () => { let diff = (wd - tgtS.getDay() + 7) % 7 || 7; return new Date(tgtS.getTime() + ((diff === 7 && curS < tgtS ? 0 : diff) * 864e5)); },
+			cycle: () => {
+				const p = start.split("-"), bS = tz ? new Date(Utilities.formatDate(new Date(p[0], p[1]-1, p[2]), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date(p[0], p[1]-1, p[2]);
+				bS.setHours(h, m, s, 0);
+				return new Date(bS.getTime() + (Math.floor((curS.getTime() - bS.getTime()) / (cyc * 864e5)) + 1) * (cyc * 864e5));
+			}
+		};
+		return getToUnix(logic[type] ? logic[type]() : tgtS);
 	};
 
 	const embed = {
 		title: `📝 Endfield - Report [<t:${Math.floor(new Date(Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss")).getTime()/1000)}:d>]`,
-		color: rows.every(r => r.success) ? 0x00A86B : 0x2F3136,
+		color: rows.every(r => r.success) 
+			? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date().getDay()] 
+			: 0x2F3136,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
-			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Shop: <t:${getReset('weekly', Settings.serverResetShop)}:R>`, inline: true },
-			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', Settings.serverResetWeekly)}:R>\n🌟 BP: <t:${getReset('cycle')}:R>`, inline: true },
+			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Shop: <t:${getReset('weekly', { wd: Settings.serverResetShop })}:R>`, inline: true },
+			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', { wd: Settings.serverResetWeekly })}:R>\n🌟 BP: <t:${getReset('cycle')}:R>`, inline: true },
 			{ name: "", value: "", inline: false },
 			...rows.flatMap((r, i) => [{
 				name: `👤 **${r.nickname} (${r.serverName})**`,
