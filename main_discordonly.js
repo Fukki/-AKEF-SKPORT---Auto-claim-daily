@@ -21,7 +21,7 @@ const Settings = {
 	serverTimezone: "Asia/Singapore", //Asia/Singapore (UTC+8) / America/New_York (UTC-5)
 	serverResetTime: "04:00:00",
 	serverResetWeekly: 1, //Monday
-	serverResetShop: 5, //Friday
+	serverResetArsenal: 5, //Friday
 	serverBPStartDate: "2026-04-17",
 	serverBPCycle: 35, //every 35 days
 	reward_db: "reward_db",
@@ -193,7 +193,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 			: 0x2F3136,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
-			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Shop: <t:${getReset('weekly', { wd: Settings.serverResetShop })}:R>`, inline: true },
+			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Arsenal: <t:${getReset('weekly', { wd: Settings.serverResetArsenal })}:R>`, inline: true },
 			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', { wd: Settings.serverResetWeekly })}:R>\n🌟 BP: <t:${getReset('cycle')}:R>`, inline: true },
 			{ name: "", value: "", inline: false },
 			...rows.flatMap((r, i) => [{
