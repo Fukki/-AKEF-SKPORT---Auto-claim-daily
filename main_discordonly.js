@@ -18,12 +18,12 @@ const Settings = {
 	vName: "1.0.0",
 	appCode: "endfield",
 	userTimezone: Session.getScriptTimeZone(),
-	serverTimezone: "Asia/Singapore",
+	serverTimezone: "Asia/Singapore", //Asia/Singapore (UTC+8) / America/New_York (UTC-5)
 	serverResetTime: "04:00:00",
-	serverResetWeekly: 1,
-	serverResetShop: 5,
+	serverResetWeekly: 1, //Monday
+	serverResetShop: 5, //Friday
 	serverBPStartDate: "2026-04-17",
-	serverBPCycle: 35,
+	serverBPCycle: 35, //every 35 days
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
