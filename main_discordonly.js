@@ -157,7 +157,8 @@ function formatResult(p, meta, i) {
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false) {
 	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db, d = tzDate(), hooks = discordApp.filter(d => d.notify && d.discordWebhook);
 	const k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
-	
+	const { max: maxRetry = 5, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
+
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
 	if (!useEdit || (useEdit && Settings.discordDailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
 
@@ -166,19 +167,17 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		const curS = tz ? new Date(Utilities.formatDate(new Date(), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date();
 		const [h, m, s] = rt.split(':').map(Number), tgtS = new Date(curS);
 		tgtS.setHours(h, m, s, 0);
-
 		const getToUnix = (date) => {
 			if (!unix) return date;
 			if (!tz) return Math.floor(date.getTime() / 1000);
 			const gO = t => { const z = Utilities.formatDate(new Date(), t, "Z"); return (z[0] === "+" ? 1 : -1) * (parseInt(z.slice(1, 3)) * 60 + parseInt(z.slice(3, 5))); };
 			return Math.floor((date.getTime() - (gO(tz) - gO(uTz)) * 60000) / 1000);
 		};
-
 		const logic = {
 			daily: () => curS >= tgtS ? new Date(tgtS.getTime() + 864e5) : tgtS,
 			weekly: () => { let diff = (wd - tgtS.getDay() + 7) % 7 || 7; return new Date(tgtS.getTime() + ((diff === 7 && curS < tgtS ? 0 : diff) * 864e5)); },
 			cycle: () => {
-				const p = start.split("-"), bS = tz ? new Date(Utilities.formatDate(new Date(p[0], p[1]-1, p[2]), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date(p[0], p[1]-1, p[2]);
+				const p = start.split("-"), bS = tz ? new Date(Utilities.formatDate(new Date(p[0], p[1] - 1, p[2]), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date(p[0], p[1] - 1, p[2]);
 				bS.setHours(h, m, s, 0);
 				return new Date(bS.getTime() + (Math.floor((curS.getTime() - bS.getTime()) / (cyc * 864e5)) + 1) * (cyc * 864e5));
 			}
@@ -187,10 +186,8 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	};
 
 	const embed = {
-		title: `📝 Endfield - Report [<t:${Math.floor(new Date(Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss")).getTime()/1000)}:d>]`,
-		color: rows.every(r => r.success) 
-			? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date().getDay()] 
-			: 0x2F3136,
+		title: `📝 Endfield - Report [<t:${Math.floor(new Date(Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss")).getTime() / 1000)}:d>]`,
+		color: rows.every(r => r.success) ? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date().getDay()] : 0x2F3136,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
 			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Arsenal: <t:${getReset('weekly', { wd: Settings.serverResetArsenal })}:R>`, inline: true },
@@ -206,17 +203,29 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		timestamp: new Date().toISOString()
 	};
 
-	hooks.forEach(h => {
+	let activeHooks = hooks.map(h => {
 		const hash = k(h.discordWebhook), msgId = db.msgMap[hash];
-		const params = {
-			method: (useEdit && msgId) ? "patch" : "post",
+		return {
+			...h, hash,
 			url: (useEdit && msgId) ? `${h.discordWebhook}/messages/${msgId}` : h.discordWebhook + "?wait=true",
+			method: (useEdit && msgId) ? "patch" : "post",
 			payload: JSON.stringify({ username: "Endfield Assistant", avatar_url: "https://static.skport.com/image/common/20260403/f266b2fc7ac711dc39f89929ba254681.png", embeds: [embed] }),
 			contentType: "application/json", muteHttpExceptions: true
 		};
-		const res = UrlFetchApp.fetch(params.url, params);
-		if (useEdit && res.getResponseCode() === 200) db.msgMap[hash] = JSON.parse(res.getContentText()).id;
 	});
+
+	for (let a = 1; a <= maxRetry && activeHooks.length > 0; a++) {
+		const failed = [];
+		chunkedFetchAll(activeHooks).forEach((r, i) => {
+			const m = readMeta(r), hash = activeHooks[i].hash;
+			if (m.code >= 200 && m.code < 300) {
+				if (useEdit && m.json?.id) db.msgMap[hash] = m.json.id;
+			} else failed.push(activeHooks[i]);
+		});
+		activeHooks = failed;
+		if (activeHooks.length > 0 && a < maxRetry) setDelay(`discordPost`, backoff << (a - 1));
+	}
+
 	if (useEdit) store.setProperty(key, JSON.stringify(db));
 }
 
