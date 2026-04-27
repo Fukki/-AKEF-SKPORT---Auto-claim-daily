@@ -249,10 +249,9 @@ function generateSign(path, body, ts, token, plat, v) {
 
 function chunkedFetchAll(reqs) {
 	const out = [], size = Settings.chunkSize || 20;
-	for (let i = 0; i < reqs.length; i += size) {
+	for (let i = 0; i < reqs.length; i += size)
 		try { out.push(...UrlFetchApp.fetchAll(reqs.slice(i, i + size))); }
-		catch (e) { console.error("Chunk fetch failed", e); out.push(...reqs.slice(i, i + size).map(() => ({ getContentText: () => "", getResponseCode: () => 500 }))); }
-	}
+		catch (e) { console.error(`Chunk error at index ${i}:`, e.message); out.push(...reqs.slice(i, i + size).map(() => ({ getContentText: () => "{}", getResponseCode: () => 500 }))); }
 	return out;
 }
 
