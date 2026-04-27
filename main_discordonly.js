@@ -155,7 +155,7 @@ function formatResult(p, meta, i) {
 }
 
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false) {
-	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db, d = tzDate(), hooks = discordApp.filter(d => d.notify && d.discordWebhook);
+	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db, d = tzDate(), hooks = discordApp.filter(o => o.notify && o.discordWebhook);
 	const k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
 	const { max: maxRetry = 5, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
 
@@ -187,7 +187,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 
 	const embed = {
 		title: `📝 Endfield - Report [<t:${Math.floor(new Date(Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss")).getTime() / 1000)}:d>]`,
-		color: rows.every(r => r.success) ? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date().getDay()] : 0x2F3136,
+		color: rows.every(r => r.success) ? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date(d).getDay()] : 0x2F3136,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
 			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Arsenal: <t:${getReset('weekly', { wd: Settings.serverResetArsenal })}:R>`, inline: true },
