@@ -94,22 +94,16 @@ function main() {
 			setDelay(`playerCard`, backoff << (a - 1));
 			chunkedFetchAll(f.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[f[k]].card = readMeta(r));
 		}
-		const timeAgo = ts => {
-			const diff = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(diff), f = (n, u) => diff > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : "" } ago`;
-			return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day");
-		};
-		const getRegen = (cur, cap, ms = 432000) => Math.floor(cur >= cap ? Date.now() : (Math.ceil(Date.now() / ms) * ms + (cap - cur - 1) * ms) / 1000);
 		cardIdx.forEach(i => {
 			const d = resolved[i].card?.json?.data?.detail;
 			if (!d) return;
-			const { dungeon: dg, base: bs, bpSystem: bp, dailyMission: dm, weeklyMission: wm } = d;
-			const cur = +dg.curStamina, max = +dg.maxStamina, cap = 240;
+
 			resolved[i].playerCard = {
-				loginTs: `🔑 Login: <t:${bs.lastLoginTime}:R>`, loginTime: `🔑 Login: ${timeAgo(bs.lastLoginTime)}`,
-				sanity: `⚡️ Energy: ${cur}/${max}`,
-				maxSanityTs: `\u2003 → ${cap}: ${cur < cap ? `<t:${getRegen(cur, cap)}:R>` : `\`Fulled\``}\n\u2003 → ${max}: ${cur >= max ? `\`Fulled\`` : `<t:${getRegen(cur, max)}:R>`}`,
-				maxSanityTime: `\u2003 → ${cap}: ${cur < cap ? timeAgo(getRegen(cur, cap)) : `Fulled`}\n\u2003 → ${max}: ${cur >= max ? `Fulled` : timeAgo(getRegen(cur, max))}`,
-				battlePass: `🌟 BP: ${bp.curLevel}/${bp.maxLevel}`, daily: `🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}`, weekly: `📅 Weekly: ${wm.score}/${wm.total}`
+				base: d.base,
+				dungeon: d.dungeon,
+				bp: d.bpSystem,
+				daily: d.dailyMission,
+				weekly: d.weeklyMission
 			};
 		});
 	}
@@ -229,12 +223,36 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	if (useEdit) store.setProperty(key, JSON.stringify(db));
 }
 
+const buildPlayerCard = (p, b = false) => {
+	if (!p?.playerCard) return "";
+
+	const t = ts => {
+		const d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(d);
+		const f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
+		return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day");
+	};
+
+	const g = (c, cap, ms = 432000) =>
+		Math.floor(c >= cap ? Date.now() : (Math.ceil(Date.now() / ms) * ms + (cap - c - 1) * ms) / 1e3);
+
+	const { base: bs, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard;
+	const c = +dg.curStamina, m = +dg.maxStamina, cap = 240;
+	const f = ts => b ? `<t:${ts}:R>` : t(ts);
+
+	return `\n🔑 Login: ${f(bs.lastLoginTime)}
+⚡️ Energy: ${c}/${m}
+\u2003 → ${cap}: ${c < cap ? f(g(c, cap)) : "Fulled"}
+\u2003 → ${m}: ${c >= m ? "Fulled" : f(g(c, m))}
+🌟 BP: ${bp.curLevel}/${bp.maxLevel}
+🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}
+📅 Weekly: ${wm.score}/${wm.total}`;
+};
+
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
 const parseJson = s => { try { return JSON.parse(s); } catch (e) { return null; } };
 const nowTs = () => String(Math.floor(Date.now() / 1000));
 const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).join("");
 const setDelay = (s, d) => (d = Math.min(d, Settings.retry?.maxBackoffMs || d), console.warn(`${s} Retry in ${d}ms`), Utilities.sleep(d));
-const buildPlayerCard = (p, b = false) => p?.playerCard ? `\n${b ? p.playerCard.loginTs : p.playerCard.loginTime}\n${p.playerCard.sanity}\n${b ? p.playerCard.maxSanityTs : p.playerCard.maxSanityTime}\n${p.playerCard.battlePass}\n${p.playerCard.daily}\n${p.playerCard.weekly}` : "";
 const failedIdx = arr => arr.map((m, i) => (!m?.json || !Settings.successCodes.has(m.json.code) ? i : -1)).filter(i => i >= 0);
 const tzDate = (tz = Settings.serverTimezone, hr = 0, f = "yyyy-MM-dd") => {
 	const d = new Date(); if (Number(Utilities.formatDate(d, tz, "H")) < hr) d.setDate(d.getDate() - 1);
