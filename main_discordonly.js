@@ -100,6 +100,7 @@ function main() {
 
 			resolved[i].playerCard = {
 				base: d.base,
+				domain: d.domain,
 				dungeon: d.dungeon,
 				bp: d.bpSystem,
 				daily: d.dailyMission,
@@ -226,29 +227,45 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 const buildPlayerCard = (p, b = false) => {
 	if (!p?.playerCard) return "";
 
-	const t = ts => {
-		const d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(d);
-		const f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
-		return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day");
-	};
+	const t = ts => { const d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(d); const f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`; return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day"); };
+	const g = (cur, cap, ms = 432000) => Math.floor(cur >= cap ? Date.now() : (Math.ceil(Date.now() / ms) * ms + (cap - cur - 1) * ms) / 1e3);
+	const fmt = ts => b ? `<t:${ts}:R>` : t(ts), wrap = (txt, b) => b ? `\`${txt}\`` : txt;
 
-	const g = (c, cap, ms = 432000) =>
-		Math.floor(c >= cap ? Date.now() : (Math.ceil(Date.now() / ms) * ms + (cap - c - 1) * ms) / 1e3);
+	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard;
+	const en = +dg.curStamina, em = +dg.maxStamina, ec = 240;
 
-	const { base: bs, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard;
-	const c = +dg.curStamina, m = +dg.maxStamina, cap = 240;
-	const f = ts => b ? `<t:${ts}:R>` : t(ts);
+	const dom = {}, rdom = { str: "", sum: 0, max: 0, fullCnt: 0, total: 0, percent: "0.00", isFull: false };
+	for (const d of dl) {
+		let sum = 0, max = 0, fullCnt = 0, total = 0;
+		for (const r of d.settlements) {
+			if (+r.level <= 0) continue;
+			const cur = +r.remainMoney, cap = +r.moneyMax;
+			sum += cur; max += cap; total++;
+			if (cur === cap) fullCnt++;
+		}
+		const percent = max ? ((sum / max) * 100).toFixed(2) : "0.00";
+		dom[d.name] = { percent, fullCnt, total, isFull: total > 0 && fullCnt === total };
+		rdom.sum += sum; rdom.max += max; rdom.fullCnt += fullCnt; rdom.total += total;
+	}
+	rdom.percent = rdom.max ? ((rdom.sum / rdom.max) * 100).toFixed(2) : "0.00";
+	rdom.isFull = rdom.total > 0 && rdom.fullCnt === rdom.total;
+	for (const name in dom) {
+		const r = dom[name];
+		rdom.str += `\n\u2003 → ${name}: ${r.isFull ? wrap("Fulled", b) : `${r.fullCnt}/${r.total}`}`;
+	}
 
-	return `\n🔑 Login: ${f(bs.lastLoginTime)}
-⚡️ Energy: ${c}/${m}
-\u2003 → ${cap}: ${c < cap ? f(g(c, cap)) : "Fulled"}
-\u2003 → ${m}: ${c >= m ? "Fulled" : f(g(c, m))}
+	return `\n🔑 Login: ${fmt(bs.lastLoginTime)}
+⚡️ Energy: ${en}/${em}
+\u2003 → ${ec}: ${en < ec ? fmt(g(en, ec)) : wrap("Fulled", b)}
+\u2003 → ${em}: ${en >= em ? wrap("Fulled", b) : fmt(g(en, em))}
+🏠 AIC Funds: ${rdom.percent}%${rdom.str}
 🌟 BP: ${bp.curLevel}/${bp.maxLevel}
 🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}
 📅 Weekly: ${wm.score}/${wm.total}`;
 };
 
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
+const readJson = (o, size = 5000) => { const s = new WeakSet(), str = JSON.stringify(o, (k, v) => typeof v === "object" && v ? (s.has(v) ? "[Circular]" : (s.add(v), v)) : v, 2); for (let i = 0; i < str.length; i += size) console.log(str.slice(i, i + size)); };
 const parseJson = s => { try { return JSON.parse(s); } catch (e) { return null; } };
 const nowTs = () => String(Math.floor(Date.now() / 1000));
 const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).join("");
