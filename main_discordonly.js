@@ -227,38 +227,31 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 const buildPlayerCard = (p, b = false) => {
 	if (!p?.playerCard) return "";
 
-	const t = ts => { const d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(d); const f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`; return a < 60 ? f(a, "second") : a < 3600 ? f(Math.round(a / 60), "minute") : a < 86400 ? f(Math.round(a / 3600), "hour") : f(Math.round(a / 86400).toLocaleString(), "day"); };
-	const g = (cur, cap, ms = 432000) => Math.floor(cur >= cap ? Date.now() : (Math.ceil(Date.now() / ms) * ms + (cap - cur - 1) * ms) / 1e3);
-	const fmt = ts => b ? `<t:${ts}:R>` : t(ts), wrap = (txt, b) => b ? `\`${txt}\`` : txt;
-
 	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard;
 	const en = +dg.curStamina, em = +dg.maxStamina, ec = 240;
 
-	const dom = {}, rdom = { str: "", sum: 0, max: 0, fullCnt: 0, total: 0, percent: "0.00", isFull: false };
-	for (const d of dl) {
-		let sum = 0, max = 0, fullCnt = 0, total = 0;
-		for (const r of d.settlements) {
-			if (+r.level <= 0) continue;
-			const cur = +r.remainMoney, cap = +r.moneyMax;
-			sum += cur; max += cap; total++;
-			if (cur === cap) fullCnt++;
-		}
-		const percent = max ? ((sum / max) * 100).toFixed(2) : "0.00";
-		dom[d.name] = { percent, fullCnt, total, isFull: total > 0 && fullCnt === total };
-		rdom.sum += sum; rdom.max += max; rdom.fullCnt += fullCnt; rdom.total += total;
-	}
-	rdom.percent = rdom.max ? ((rdom.sum / rdom.max) * 100).toFixed(2) : "0.00";
-	rdom.isFull = rdom.total > 0 && rdom.fullCnt === rdom.total;
-	for (const name in dom) {
-		const r = dom[name];
-		rdom.str += `\n\u2003 → ${name}: ${r.isFull ? wrap("Fulled", b) : `${r.fullCnt}/${r.total}`}`;
-	}
+	const wrap = (t) => b ? `\`${t}\`` : t;
+	const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
+	const fmt = (ts) => {
+		if (b) return `<t:${ts}:R>`;
+		const d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(d), f = (n, u) => `${n} ${u}${n > 1 ? "s" : ""} ${d > 0 ? "in" : "ago"}`;
+		return a < 60 ? f(a, "sec") : a < 3600 ? f((a / 60) | 0, "min") : a < 86400 ? f((a / 3600) | 0, "hr") : f((a / 86400 | 0).toLocaleString(), "day");
+	};
 
-	return `\n🔑 Login: ${fmt(bs.lastLoginTime)}
+	let aSum = 0, aMax = 0, aStr = "";
+	dl.forEach(d => {
+		const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
+		aSum += cur; aMax += max; aStr += `\n\u2003 → ${d.name}: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${f}/${s.length}`}`;
+	});
+
+	const eStr = (cap) => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
+
+	return `
+🔑 Login: ${fmt(bs.lastLoginTime)}
 ⚡️ Energy: ${en}/${em}
-\u2003 → ${ec}: ${en < ec ? fmt(g(en, ec)) : wrap("Fulled", b)}
-\u2003 → ${em}: ${en >= em ? wrap("Fulled", b) : fmt(g(en, em))}
-🏠 AIC Funds: ${rdom.percent}%${rdom.str}
+\u2003 → ${ec}: ${eStr(ec)}
+\u2003 → ${em}: ${eStr(em)}
+🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}
 🌟 BP: ${bp.curLevel}/${bp.maxLevel}
 🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}
 📅 Weekly: ${wm.score}/${wm.total}`;
