@@ -241,7 +241,7 @@ const buildPlayerCard = (p, b = false) => {
 	let aSum = 0, aMax = 0, aStr = "";
 	dl.forEach(d => {
 		const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
-		aSum += cur; aMax += max; aStr += `\n\u2003 → ${d.name}: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${f}/${s.length}`}`;
+		aSum += cur; aMax += max; aStr += `\n\u2003 → ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}`;
 	});
 
 	const eStr = (cap) => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
