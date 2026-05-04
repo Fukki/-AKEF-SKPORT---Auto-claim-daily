@@ -227,17 +227,12 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 const buildPlayerCard = (p, b = false) => {
 	if (!p?.playerCard) return "";
 
-	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard;
-	const en = +dg.curStamina, em = +dg.maxStamina, ec = 240;
+	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
 
 	const wrap = (t) => b ? `\`${t}\`` : t;
 	const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
-	const fmt = (ts) => {
-		if (b) return `<t:${ts}:R>`;
-		const d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0, a = Math.abs(d), f = (n, u) => `${n} ${u}${n > 1 ? "s" : ""} ${d > 0 ? "in" : "ago"}`;
-		return a < 60 ? f(a, "sec") : a < 3600 ? f((a / 60) | 0, "min") : a < 86400 ? f((a / 3600) | 0, "hr") : f((a / 86400 | 0).toLocaleString(), "day");
-	};
-
+	const fmt = ts => b ? `<t:${ts}:R>` : ((d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0), (a = Math.abs(d)), (f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`), a < 60 ? f(a, "sec") : a < 3600 ? f((a / 60) | 0, "min") : a < 86400 ? f((a / 3600) | 0, "hour") : f((a / 86400) | 0, "day"));
+  
 	let aSum = 0, aMax = 0, aStr = "";
 	dl.forEach(d => {
 		const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
@@ -249,7 +244,7 @@ const buildPlayerCard = (p, b = false) => {
 	return `
 🔑 Login: ${fmt(bs.lastLoginTime)}
 ⚡️ Energy: ${en}/${em}
-\u2003 → ${ec}: ${eStr(ec)}
+\u2003 → 240: ${eStr(240)}
 \u2003 → ${em}: ${eStr(em)}
 🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}
 🌟 BP: ${bp.curLevel}/${bp.maxLevel}
