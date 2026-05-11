@@ -23,7 +23,7 @@ const Settings = {
 	serverResetWeekly: 1, //Monday
 	serverResetArsenal: 5, //Friday
 	serverBPStartDate: "2026-04-17",
-	serverBPCycle: 35, //every 35 days
+	serverBPCycle: 49, //every x days
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -244,8 +244,7 @@ const buildPlayerCard = (p, b = false) => {
 	return `
 🔑 Login: ${fmt(bs.lastLoginTime)}
 ⚡️ Energy: ${en}/${em}
-\u2003 → 240: ${eStr(240)}
-\u2003 → ${em}: ${eStr(em)}
+${[200, 240, em].map(v => `\u2003 → ${v}: ${eStr(v)}`).join("\n")}
 🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}
 🌟 BP: ${bp.curLevel}/${bp.maxLevel}
 🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}
