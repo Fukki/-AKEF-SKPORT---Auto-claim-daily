@@ -237,16 +237,16 @@ const buildPlayerCard = (p, b = false) => {
 		return a < 60 ? f(a, "sec") : a < 3600 ? f((a / 60) | 0, "min") : a < 864e2 ? f((a / 3600) | 0, "hour") : a < 6048e2 ? f((a / 864e2) | 0, "day") : a < 2592e3 ? f((a / 6048e2) | 0, "week") : a < 31536e3 ? f((a / 2592e3) | 0, "month") : f((a / 31536e3) | 0, "year");
 	};
 
-  const shm = n => {
-    let uIdx = 0, num = +n, units = ["", "k", "m", "b", "t", "qa", "qi", "sx", "sp", "oc", "no", "dc"];
-    while (num >= 1000 && uIdx < units.length - 1) { num /= 1000; uIdx++; }
-    return (Number.isInteger(num) ? num.toString() : num.toFixed(2).replace(/\.?0+$/, "")) + units[uIdx];
-  };
+	const shn = (n, d = 2, f = false) => {
+		let uIdx = 0, num = +n, units = ["", "k", "m", "b", "t", "qa", "qi", "sx", "sp", "oc", "no", "dc"];
+		while (num >= 1000 && uIdx < units.length - 1) { num /= 1000; uIdx++; }
+		return (f ? num.toFixed(d) : (Number.isInteger(num) ? num.toString() : num.toFixed(d).replace(/\.?0+$/, ""))) + units[uIdx];
+	};
 
   let aSum = 0, aMax = 0, aStr = "";
   dl.forEach(d => {
     const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
-    const remainList = s.map((x, i) => `\u2003\u2003[${i + 1}]: ${shm(x.remainMoney)}/${shm(x.moneyMax)}`).join("\n");
+    const remainList = s.map((x, i) => `\u2003\u2003[${i + 1}]: ${shn(x.remainMoney)}/${shn(x.moneyMax)}`).join("\n");
     aSum += cur; aMax += max;
     aStr += `\n\u2003→ ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}${remainList ? "\n" + remainList : ""}`;
   });
