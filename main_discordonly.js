@@ -246,14 +246,14 @@ const buildPlayerCard = (p, b = false) => {
   let aSum = 0, aMax = 0, aStr = "";
   dl.forEach(d => {
     const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
-    const remainList = s.map((x, i) => `\u2003\u2003 → [${i + 1}]: ${shm(x.remainMoney)}/${shm(x.moneyMax)}`).join("\n");
+    const remainList = s.map((x, i) => `\u2003\u2003[${i + 1}]: ${shm(x.remainMoney)}/${shm(x.moneyMax)}`).join("\n");
     aSum += cur; aMax += max;
-    aStr += `\n\u2003 → ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}${remainList ? "\n" + remainList : ""}`;
+    aStr += `\n\u2003→ ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}${remainList ? "\n" + remainList : ""}`;
   });
 
   const eStr = cap => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
 
-  return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[200, 240, em].map(v => `\u2003 → ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
+  return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[200, 240, em].map(v => `\u2003→ ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
 };
 
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
