@@ -226,30 +226,34 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 }
 
 const buildPlayerCard = (p, b = false) => {
-	if (!p?.playerCard) return "";
+  if (!p?.playerCard) return "";
+  const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
 
-	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
+  const wrap = t => b ? `\`${t}\`` : t;
+  const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
+	const fmt = ts => {
+		if (b) return `<t:${ts}:R>`;
+		const d = (((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0), a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
+		return a < 60 ? f(a, "sec") : a < 3600 ? f((a / 60) | 0, "min") : a < 864e2 ? f((a / 3600) | 0, "hour") : a < 6048e2 ? f((a / 864e2) | 0, "day") : a < 2592e3 ? f((a / 6048e2) | 0, "week") : a < 31536e3 ? f((a / 2592e3) | 0, "month") : f((a / 31536e3) | 0, "year");
+	};
 
-	const wrap = (t) => b ? `\`${t}\`` : t;
-	const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
-	const fmt = ts => b ? `<t:${ts}:R>` : ((d = ((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0), (a = Math.abs(d)), (f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`), a < 60 ? f(a, "sec") : a < 3600 ? f((a / 60) | 0, "min") : a < 86400 ? f((a / 3600) | 0, "hour") : f((a / 86400) | 0, "day"));
-  
-	let aSum = 0, aMax = 0, aStr = "";
-	dl.forEach(d => {
-		const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
-		aSum += cur; aMax += max; aStr += `\n\u2003 → ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}`;
-	});
+  const shm = n => {
+    let uIdx = 0, num = +n, units = ["", "k", "m", "b", "t", "qa", "qi", "sx", "sp", "oc", "no", "dc"];
+    while (num >= 1000 && uIdx < units.length - 1) { num /= 1000; uIdx++; }
+    return (Number.isInteger(num) ? num.toString() : num.toFixed(2).replace(/\.?0+$/, "")) + units[uIdx];
+  };
 
-	const eStr = (cap) => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
+  let aSum = 0, aMax = 0, aStr = "";
+  dl.forEach(d => {
+    const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
+    const remainList = s.map((x, i) => `\u2003\u2003 → [${i + 1}]: ${shm(x.remainMoney)}/${shm(x.moneyMax)}`).join("\n");
+    aSum += cur; aMax += max;
+    aStr += `\n\u2003 → ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}${remainList ? "\n" + remainList : ""}`;
+  });
 
-	return `
-🔑 Login: ${fmt(bs.lastLoginTime)}
-⚡️ Energy: ${en}/${em}
-${[200, 240, em].map(v => `\u2003 → ${v}: ${eStr(v)}`).join("\n")}
-🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}
-🌟 BP: ${bp.curLevel}/${bp.maxLevel}
-🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}
-📅 Weekly: ${wm.score}/${wm.total}`;
+  const eStr = cap => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
+
+  return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[200, 240, em].map(v => `\u2003 → ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
 };
 
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
