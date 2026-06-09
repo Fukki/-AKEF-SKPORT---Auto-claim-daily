@@ -22,8 +22,8 @@ const Settings = {
 	serverResetTime: "04:00:00",
 	serverResetWeekly: 1, //Monday
 	serverResetArsenal: 5, //Friday
-	serverBPStartDate: "2026-04-17",
-	serverBPCycle: 49, //every x days
+	serverBPStartDate: "2026-06-5 06:00:00",
+	serverBPCycle: 42, //every x days, 35 42 49
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -172,8 +172,9 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 			daily: () => curS >= tgtS ? new Date(tgtS.getTime() + 864e5) : tgtS,
 			weekly: () => { let diff = (wd - tgtS.getDay() + 7) % 7 || 7; return new Date(tgtS.getTime() + ((diff === 7 && curS < tgtS ? 0 : diff) * 864e5)); },
 			cycle: () => {
-				const p = start.split("-"), bS = tz ? new Date(Utilities.formatDate(new Date(p[0], p[1] - 1, p[2]), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date(p[0], p[1] - 1, p[2]);
-				bS.setHours(h, m, s, 0);
+				const p = start.split(" "), dp = p[0].split("-"), tp = p[1] ? p[1].split(":") : [];
+				const bS = tz ? new Date(Utilities.formatDate(new Date(dp[0], dp[1] - 1, dp[2]), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date(dp[0], dp[1] - 1, dp[2]);
+				bS.setHours(tp[0] || h, tp[1] || m, tp[2] || s, 0);
 				return new Date(bS.getTime() + (Math.floor((curS.getTime() - bS.getTime()) / (cyc * 864e5)) + 1) * (cyc * 864e5));
 			}
 		};
@@ -253,7 +254,7 @@ const buildPlayerCard = (p, b = false) => {
 
   const eStr = cap => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
 
-  return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[200, 240, em].map(v => `\u2003→ ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
+  return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[160, 200, 240, em].map(v => `\u2003→ ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
 };
 
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
