@@ -265,15 +265,12 @@ const nowTs = () => String(Math.floor(Date.now() / 1000));
 const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).join("");
 const setDelay = (s, d) => (d = Math.min(d, Settings.retry?.maxBackoffMs || d), console.warn(`${s} Retry in ${d}ms`), Utilities.sleep(d));
 const failedIdx = arr => arr.map((m, i) => (!m?.json || !Settings.successCodes.has(m.json.code) ? i : -1)).filter(i => i >= 0);
-function checkDailyReset(dbDate, timeStr) {
-	const n = new Date(), p = v => String(v).padStart(2, '0');
-	const td = `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
-	if (!dbDate) return { date: td, isReset: true };
-	const [y, m, d] = dbDate.split('-').map(Number);
-	const [h, mi, s] = (timeStr || "00:00:00").split(':').map(Number);
-	const ir = new Date(y, m - 1, d + 1, h, mi, s) <= n;
-	return { date: ir ? td : dbDate, isReset: ir };
-}
+const checkDailyReset = (d, t = "00:00:00") => {
+	const n = new Date(), td = new Date(n - n.getTimezoneOffset() * 6e4).toJSON().slice(0, 10);
+	const [y, m, x] = (d || "").split("-");
+	const r = !d || new Date(y, m - 1, +x + 1, ...t.split(":")) <= n;
+	return { date: r ? td : d, isReset: r };
+};
 
 function generateSign(path, body, ts, token, plat, v) {
 	const hJson = JSON.stringify({ platform: String(plat), timestamp: String(ts), dId: "", vName: String(v) });
