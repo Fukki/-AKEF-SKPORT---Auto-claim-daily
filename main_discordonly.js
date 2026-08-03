@@ -20,10 +20,10 @@ const Settings = {
 	discordResetTime: "23:00:00", //format "HH:MM:SS"
 	rewardResetTime: "23:00:00", //format "HH:MM:SS"
 	serverDailyReset: "03:00:00", //format "HH:MM:SS"
-	serverWeelyReset: [5, "03:00:00"], //format [MDay, HH:MM:SS]
-	serverResetArsenal: [5, "09:00:00"], //format [MDay, HH:MM:SS]
+	serverWeelyReset: [5, "03:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
+	serverArsenalReset: [5, "09:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverBPCycleStart: "2026-07-16 06:00:00", //format "YYYY-MM-DD HH:MM:SS"
-	serverBPCycleEnd: [49, "09:00:00"], //format [Cycle, HH:MM:SS]
+	serverBPCycleEnd: [49, "09:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -186,7 +186,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
 			{ name: "**Useful Link**", value: "[App](https://script.google.com/home/my) | [Home](https://endfield.gryphline.com/en-us) | [Sched](https://endfield.gryphline.com/en-us#calendar) | [SKP](https://www.skport.com/) | [Wiki](https://wiki.skport.com/endfield) | [Guide](https://www.prydwen.gg/arknights-endfield/) | [Map](https://opendfieldmap.org/) | [BP#1](https://endfieldtools.dev/community-factories/) | [BP#2](https://talospioneers.com) | [Ess](https://endfieldtools.dev/weapon-essence-solver/)", inline: false },
-			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily', Settings.serverDailyReset)}:R>\n🗡️ Arsenal: <t:${getReset('weekly', Settings.serverResetArsenal)}:R>`, inline: true },
+			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily', Settings.serverDailyReset)}:R>\n🗡️ Arsenal: <t:${getReset('weekly', Settings.serverArsenalReset)}:R>`, inline: true },
 			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', Settings.serverWeelyReset)}:R>\n🌟 BP: <t:${getReset('cycle', Settings.serverBPCycleStart, Settings.serverBPCycleEnd)}:R>`, inline: true },
 			{ name: "", value: "", inline: false },
 			...rows.flatMap((r, i) => [{
