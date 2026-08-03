@@ -17,13 +17,13 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	userTimezone: Session.getScriptTimeZone(),
-	serverTimezone: "Asia/Singapore", //Asia/Singapore (UTC+8) / America/New_York (UTC-5)
-	serverResetTime: "04:00:00",
-	serverResetWeekly: 1, //Monday
-	serverResetArsenal: 5, //Friday
-	serverBPStartDate: "2026-06-5 06:00:00",
-	serverBPCycle: 42, //every x days, 35 42 49
+	discordResetTime: "23:00:00", //format "HH:MM:SS"
+	rewardResetTime: "23:00:00", //format "HH:MM:SS"
+	serverDailyReset: "03:00:00", //format "HH:MM:SS"
+	serverWeelyReset: [5, "03:00:00"], //format [MDay, HH:MM:SS]
+	serverResetArsenal: [5, "09:00:00"], //format [MDay, HH:MM:SS]
+	serverBPCycleStart: "2026-07-16 06:00:00", //format "YYYY-MM-DD HH:MM:SS"
+	serverBPCycleEnd: [49, "09:00:00"], //format [Cycle, HH:MM:SS]
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -124,13 +124,12 @@ function main() {
 }
 
 function formatResult(p, meta, i) {
-	const store = PropertiesService.getScriptProperties(), key = Settings.reward_db, d = tzDate();
+	const store = PropertiesService.getScriptProperties(), key = Settings.reward_db;
+	const d = getResetCycleDate(Settings.rewardResetTime || "00:00:00");
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","items":{},"accounts":{}}');
 	if (db.date !== d) store.setProperty(key, JSON.stringify(db = { date: d, items: {}, accounts: {} }));
-
 	const out = { nickname: p.nickname || `#${i + 1}`, serverName: p.serverName || "", success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [], playerCard: p?.playerCard ?? {} };
 	if (!meta?.json) return (out.status = "💥 Invalid JSON", out.msg = meta?.rawText || "No response", out);
-
 	const j = meta.json, acc = p.skGameRole || `#${i + 1}`;
 	if (Settings.successCodes.has(j.code)) {
 		out.success = true;
@@ -144,51 +143,51 @@ function formatResult(p, meta, i) {
 		out.msg = ids.length ? ids.map(id => db.items[id]?.[0]).join("\n") : "🎁 Successfully claimed";
 		out.itemIcon_url = ids.map(id => db.items[id]?.[1]).filter(Boolean);
 	} else (out.status = `❌ Error (Code: ${j.code})`, out.msg = j.message || "Unknown Error");
-
-	console.log(`Server Time: ${tzDate(Settings.serverTimezone, 0, "HH:mm:ss")}\n[${out.nickname} (${out.serverName})]\n${out.status}\n${out.msg}${typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(p) : ""}`);
+	console.log(`[${out.nickname} (${out.serverName})]\n${out.status}\n${out.msg}${typeof buildPlayerCard !== 'undefined' ? buildPlayerCard(p) : ""}`);
 	return out;
 }
 
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false) {
-	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db, d = tzDate(), hooks = discordApp.filter(o => o.notify && o.discordWebhook);
+	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db;
+	const hooks = discordApp.filter(o => o.notify && o.discordWebhook);
 	const k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
-	const { max: maxRetry = 5, initialBackoffMs: backoff = 1000 } = Settings.retry || {}, st = Utilities.formatDate(new Date(), Settings.serverTimezone, "MMMM dd, yyyy HH:mm:ss");
-
+	const { max: maxRetry = 5, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
+	const d = getResetCycleDate(Settings.discordResetTime || "00:00:00");
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
 	if (!useEdit || (useEdit && Settings.discordDailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
+	
+	const getReset = (type, opt, extra) => {
+		let rt, wd, start, cyc, curS = new Date();
+		if (type === 'daily') rt = Array.isArray(opt) ? opt[0] : opt;
+		else if (type === 'weekly') [wd, rt] = Array.isArray(opt) ? opt : [opt?.wd, opt?.rt];
+		else if (type === 'cycle') { start = opt; [cyc, rt] = Array.isArray(extra) ? extra : [extra?.cyc, extra?.rt]; }
 
-	const getReset = (type, opt = {}) => {
-		const { tz = Settings.serverTimezone, rt = Settings.serverResetTime, wd = 1, start = Settings.serverBPStartDate, cyc = Settings.serverBPCycle, unix = true, uTz = Settings.userTimezone } = opt;
-		const curS = tz ? new Date(Utilities.formatDate(new Date(), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date();
 		const [h, m, s] = rt.split(':').map(Number), tgtS = new Date(curS);
 		tgtS.setHours(h, m, s, 0);
-		const getToUnix = (date) => {
-			if (!unix) return date;
-			if (!tz) return Math.floor(date.getTime() / 1000);
-			const gO = t => { const z = Utilities.formatDate(new Date(), t, "Z"); return (z[0] === "+" ? 1 : -1) * (parseInt(z.slice(1, 3)) * 60 + parseInt(z.slice(3, 5))); };
-			return Math.floor((date.getTime() - (gO(tz) - gO(uTz)) * 60000) / 1000);
-		};
+
 		const logic = {
 			daily: () => curS >= tgtS ? new Date(tgtS.getTime() + 864e5) : tgtS,
 			weekly: () => { let diff = (wd - tgtS.getDay() + 7) % 7 || 7; return new Date(tgtS.getTime() + ((diff === 7 && curS < tgtS ? 0 : diff) * 864e5)); },
 			cycle: () => {
-				const p = start.split(" "), dp = p[0].split("-"), tp = p[1] ? p[1].split(":") : [];
-				const bS = tz ? new Date(Utilities.formatDate(new Date(dp[0], dp[1] - 1, dp[2]), tz, "MMMM dd, yyyy HH:mm:ss")) : new Date(dp[0], dp[1] - 1, dp[2]);
-				bS.setHours(tp[0] || h, tp[1] || m, tp[2] || s, 0);
-				return new Date(bS.getTime() + (Math.floor((curS.getTime() - bS.getTime()) / (cyc * 864e5)) + 1) * (cyc * 864e5));
+				const p = start.split(" "), dp = p[0].split("-").map(Number), tp = (p[1] || "00:00:00").split(":").map(Number);
+				const bS = new Date(dp[0], dp[1] - 1, dp[2], tp[0], tp[1], tp[2]);
+				const nC = Math.floor((curS.getTime() - bS.getTime()) / (cyc * 864e5)) + 1;
+				const resDate = new Date(bS.getTime() + nC * cyc * 864e5);
+				resDate.setHours(h, m, s, 0);
+				return curS >= resDate ? new Date(resDate.getTime() + cyc * 864e5) : resDate;
 			}
 		};
-		return getToUnix(logic[type] ? logic[type]() : tgtS);
+		return Math.floor((logic[type] ? logic[type]() : tgtS).getTime() / 1000);
 	};
 
 	const embed = {
-		title: `📝 Endfield - Report [<t:${Math.floor(new Date(st).getTime() / 1000)}:d>]`,
-		color: rows.every(r => r.success) ? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date(st).getDay()] : 0x2F3136,
+		title: `📝 Endfield - Report [<t:${Math.floor(new Date().getTime() / 1000)}:d>]`,
+		color: rows.every(r => r.success) ? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date().getDay()] : 0x2F3136,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
 			{ name: "**Useful Link**", value: "[App](https://script.google.com/home/my) | [Home](https://endfield.gryphline.com/en-us) | [Sched](https://endfield.gryphline.com/en-us#calendar) | [SKP](https://www.skport.com/) | [Wiki](https://wiki.skport.com/endfield) | [Guide](https://www.prydwen.gg/arknights-endfield/) | [Map](https://opendfieldmap.org/) | [BP#1](https://endfieldtools.dev/community-factories/) | [BP#2](https://talospioneers.com) | [Ess](https://endfieldtools.dev/weapon-essence-solver/)", inline: false },
-			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily')}:R>\n🗡️ Arsenal: <t:${getReset('weekly', { wd: Settings.serverResetArsenal })}:R>`, inline: true },
-			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', { wd: Settings.serverResetWeekly })}:R>\n🌟 BP: <t:${getReset('cycle')}:R>`, inline: true },
+			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily', Settings.serverDailyReset)}:R>\n🗡️ Arsenal: <t:${getReset('weekly', Settings.serverResetArsenal)}:R>`, inline: true },
+			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', Settings.serverWeelyReset)}:R>\n🌟 BP: <t:${getReset('cycle', Settings.serverBPCycleStart, Settings.serverBPCycleEnd)}:R>`, inline: true },
 			{ name: "", value: "", inline: false },
 			...rows.flatMap((r, i) => [{
 				name: `👤 **${r.nickname} (${r.serverName})**`,
@@ -222,7 +221,6 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		activeHooks = failed;
 		if (activeHooks.length > 0 && a < maxRetry) setDelay(`discordPost`, backoff << (a - 1));
 	}
-
 	if (useEdit) store.setProperty(key, JSON.stringify(db));
 }
 
@@ -264,9 +262,10 @@ const nowTs = () => String(Math.floor(Date.now() / 1000));
 const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).join("");
 const setDelay = (s, d) => (d = Math.min(d, Settings.retry?.maxBackoffMs || d), console.warn(`${s} Retry in ${d}ms`), Utilities.sleep(d));
 const failedIdx = arr => arr.map((m, i) => (!m?.json || !Settings.successCodes.has(m.json.code) ? i : -1)).filter(i => i >= 0);
-const tzDate = (tz = Settings.serverTimezone, hr = 0, f = "yyyy-MM-dd") => {
-	const d = new Date(); if (Number(Utilities.formatDate(d, tz, "H")) < hr) d.setDate(d.getDate() - 1);
-	return Utilities.formatDate(d, tz, f);
+const getResetCycleDate = (rt = "00:00:00") => {
+	const n = new Date(), [h, m, s] = rt.split(':').map(Number);
+	const d = (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) < (h * 3600 + (m || 0) * 60 + (s || 0)) ? new Date(n - 864e5) : n;
+	return d.toISOString().slice(0, 10);
 };
 
 function generateSign(path, body, ts, token, plat, v) {
