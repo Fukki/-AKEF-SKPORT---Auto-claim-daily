@@ -125,9 +125,9 @@ function main() {
 
 function formatResult(p, meta, i) {
 	const store = PropertiesService.getScriptProperties(), key = Settings.reward_db;
-	const d = getResetCycleDate(Settings.rewardResetTime || "00:00:00");
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","items":{},"accounts":{}}');
-	if (db.date !== d) store.setProperty(key, JSON.stringify(db = { date: d, items: {}, accounts: {} }));
+	const checkReset = checkDailyReset(db.date, Settings.rewardResetTime || "00:00:00");
+	if (checkReset.isReset) store.setProperty(key, JSON.stringify(db = { date: checkReset.date, items: {}, accounts: {} }));
 	const out = { nickname: p.nickname || `#${i + 1}`, serverName: p.serverName || "", success: false, status: "", msg: "", raw: (meta?.rawText || "").slice(0, 2000), itemIcon_url: [], playerCard: p?.playerCard ?? {} };
 	if (!meta?.json) return (out.status = "💥 Invalid JSON", out.msg = meta?.rawText || "No response", out);
 	const j = meta.json, acc = p.skGameRole || `#${i + 1}`;
@@ -152,9 +152,12 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	const hooks = discordApp.filter(o => o.notify && o.discordWebhook);
 	const k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
 	const { max: maxRetry = 5, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
-	const d = getResetCycleDate(Settings.discordResetTime || "00:00:00");
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
-	if (!useEdit || (useEdit && Settings.discordDailyPost && db.date !== d)) store.setProperty(key, JSON.stringify(db = { date: d, msgMap: {} }));
+	const checkReset = checkDailyReset(db.date, Settings.discordResetTime || "00:00:00");
+	if (!useEdit || (useEdit && Settings.discordDailyPost && checkReset.isReset)) {
+		const finalDate = !useEdit && !checkReset.isReset ? checkResetCycle("", "").date : checkReset.date;
+		store.setProperty(key, JSON.stringify(db = { date: finalDate, msgMap: {} }));
+	}
 	
 	const getReset = (type, opt, extra) => {
 		let rt, wd, start, cyc, curS = new Date();
@@ -262,11 +265,15 @@ const nowTs = () => String(Math.floor(Date.now() / 1000));
 const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).join("");
 const setDelay = (s, d) => (d = Math.min(d, Settings.retry?.maxBackoffMs || d), console.warn(`${s} Retry in ${d}ms`), Utilities.sleep(d));
 const failedIdx = arr => arr.map((m, i) => (!m?.json || !Settings.successCodes.has(m.json.code) ? i : -1)).filter(i => i >= 0);
-const getResetCycleDate = (rt = "00:00:00") => {
-	const n = new Date(), [h, m, s] = rt.split(':').map(Number);
-	const d = (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) < (h * 3600 + (m || 0) * 60 + (s || 0)) ? new Date(n - 864e5) : n;
-	return d.toISOString().slice(0, 10);
-};
+function checkDailyReset(dbDate, timeStr) {
+	const n = new Date(), p = v => String(v).padStart(2, '0');
+	const td = `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+	if (!dbDate) return { date: td, isReset: true };
+	const [y, m, d] = dbDate.split('-').map(Number);
+	const [h, mi, s] = (timeStr || "00:00:00").split(':').map(Number);
+	const ir = new Date(y, m - 1, d + 1, h, mi, s) <= n;
+	return { date: ir ? td : dbDate, isReset: ir };
+}
 
 function generateSign(path, body, ts, token, plat, v) {
 	const hJson = JSON.stringify({ platform: String(plat), timestamp: String(ts), dId: "", vName: String(v) });
