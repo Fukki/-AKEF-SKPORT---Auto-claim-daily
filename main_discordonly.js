@@ -20,7 +20,7 @@ const Settings = {
 	discordResetTime: "23:00:00", //format "HH:MM:SS"
 	rewardResetTime: "23:00:00", //format "HH:MM:SS"
 	serverDailyReset: "03:00:00", //format "HH:MM:SS"
-	serverWeelyReset: [5, "03:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
+	serverWeelyReset: [1, "03:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverArsenalReset: [5, "09:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverBPCycleStart: "2026-07-16 05:00:00", //format "YYYY-MM-DD HH:MM:SS"
 	serverBPCycleEnd: [49, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
