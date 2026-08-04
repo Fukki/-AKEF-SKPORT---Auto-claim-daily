@@ -17,13 +17,13 @@ const Settings = {
 	platform: "3",
 	vName: "1.0.0",
 	appCode: "endfield",
-	discordResetTime: "23:00:00", //format "HH:MM:SS"
+	discordResetTime: "23:00:00", //format "HH:MM:SS" *must same rewardResetTime and set when discordDailyPost = true
 	rewardResetTime: "23:00:00", //format "HH:MM:SS"
 	serverDailyReset: "03:00:00", //format "HH:MM:SS"
 	serverWeelyReset: [1, "03:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverArsenalReset: [5, "09:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
-	serverBPCycleStart: "2026-07-16 05:00:00", //format "YYYY-MM-DD HH:MM:SS"
-	serverBPCycleEnd: [49, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
+	serverBPCycleStart: "2026-07-16 11:00:00", //format "YYYY-MM-DD HH:MM:SS"
+	serverBPCycleEnd: [48, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -257,9 +257,8 @@ const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).
 const setDelay = (s, d) => (d = Math.min(d, Settings.retry?.maxBackoffMs || d), console.warn(`${s} Retry in ${d}ms`), Utilities.sleep(d));
 const failedIdx = arr => arr.map((m, i) => (!m?.json || !Settings.successCodes.has(m.json.code) ? i : -1)).filter(i => i >= 0);
 const checkDailyReset = (d, t = "00:00:00") => {
-	const n = new Date(), td = new Date(n - n.getTimezoneOffset() * 6e4).toJSON().slice(0, 10);
-	const [y, m, x] = (d || "").split("-");
-	const r = !d || new Date(y, m - 1, +x + 1, ...t.split(":")) <= n;
+	const n = new Date(), [y, m, x] = (d || "").split("-").map(Number), td = new Date(n - n.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+	const r = !d || (g => (g.setDate(g.getDate() + 1), !(g > n)))(new Date(y, m - 1, x, ...t.split(":").map(Number)));
 	return { date: r ? td : d, isReset: r };
 };
 
