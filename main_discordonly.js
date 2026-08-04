@@ -22,8 +22,8 @@ const Settings = {
 	serverDailyReset: "03:00:00", //format "HH:MM:SS"
 	serverWeelyReset: [5, "03:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverArsenalReset: [5, "09:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
-	serverBPCycleStart: "2026-07-16 06:00:00", //format "YYYY-MM-DD HH:MM:SS"
-	serverBPCycleEnd: [49, "09:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days
+	serverBPCycleStart: "2026-07-16 05:00:00", //format "YYYY-MM-DD HH:MM:SS"
+	serverBPCycleEnd: [49, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
 	reward_db: "reward_db",
 	discord_db: "discord_db",
 	discordColumn: 2,
@@ -160,27 +160,18 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	}
 	
 	const getReset = (type, opt, extra) => {
-		let rt, wd, start, cyc, curS = new Date();
-		if (type === 'daily') rt = Array.isArray(opt) ? opt[0] : opt;
-		else if (type === 'weekly') [wd, rt] = Array.isArray(opt) ? opt : [opt?.wd, opt?.rt];
-		else if (type === 'cycle') { start = opt; [cyc, rt] = Array.isArray(extra) ? extra : [extra?.cyc, extra?.rt]; }
-
-		const [h, m, s] = rt.split(':').map(Number), tgtS = new Date(curS);
-		tgtS.setHours(h, m, s, 0);
-
-		const logic = {
-			daily: () => curS >= tgtS ? new Date(tgtS.getTime() + 864e5) : tgtS,
-			weekly: () => { let diff = (wd - tgtS.getDay() + 7) % 7 || 7; return new Date(tgtS.getTime() + ((diff === 7 && curS < tgtS ? 0 : diff) * 864e5)); },
-			cycle: () => {
-				const p = start.split(" "), dp = p[0].split("-").map(Number), tp = (p[1] || "00:00:00").split(":").map(Number);
-				const bS = new Date(dp[0], dp[1] - 1, dp[2], tp[0], tp[1], tp[2]);
-				const nC = Math.floor((curS.getTime() - bS.getTime()) / (cyc * 864e5)) + 1;
-				const resDate = new Date(bS.getTime() + nC * cyc * 864e5);
-				resDate.setHours(h, m, s, 0);
-				return curS >= resDate ? new Date(resDate.getTime() + cyc * 864e5) : resDate;
-			}
-		};
-		return Math.floor((logic[type] ? logic[type]() : tgtS).getTime() / 1000);
+		const n = new Date(), o = type == 'cycle' ? extra : opt;
+		const [a, rt = "00:00:00"] = Array.isArray(o) ? (type == 'daily' ? [0, o[0]] : o) : [o?.wd ?? o?.cyc ?? 0, o?.rt ?? o];
+		const t = new Date(n);
+		t.setHours(...rt.split(':'), 0);
+		if (type != 'cycle') {
+			const d = type == 'weekly' ? (a - n.getDay() + 7) % 7 : 0;
+			t.setDate(t.getDate() + d + (!d && t <= n ? (type == 'weekly' ? 7 : 1) : 0));
+			return Math.floor(t / 1000);
+		}
+		const b = new Date(opt.replace(" ", "T")), k = a * 864e5;
+		b.setHours(...rt.split(':'), 0);
+		return Math.floor((+b + Math.ceil((n - b + 1) / k) * k) / 1000);
 	};
 
 	const embed = {
