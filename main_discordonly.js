@@ -263,13 +263,13 @@ function generateSign(path, body, ts, token, plat, v) {
 }
 
 function chunkedFetchAll(reqs, isValid = r => r.getResponseCode() >= 200 && r.getResponseCode() < 300) {
-	const { chunkSize: sz = 20, retry: { max = 15, initialBackoffMs: bf = 500, maxBackoffMs: mBf = 5000 } = {} } = Settings;
+	const { chunkSize: sz = 20, retry: { max = 5, initialBackoffMs: bf = 500, maxBackoffMs: mBf = 5000 } = {} } = Settings;
 	const err = () => ({ getContentText: () => "{}", getResponseCode: () => 500 });
 	return Array.from({ length: Math.ceil(reqs.length / sz) }, (_, i) => reqs.slice(i * sz, (i + 1) * sz)).flatMap(chk => {
 		let res; try { res = UrlFetchApp.fetchAll(chk); } catch (e) { res = chk.map(err); }
 		return res.map((r, j) => {
-			for (let a = 0, rq = chk[j], d; a < max - 1 && !isValid(r); a++) {
-				console.warn(`[Retry ${a+1}/${max-1}] ${(rq.url||"").split('?')[0].split('/').pop()||"Req"} in ${d = Math.min(bf << a, mBf)}ms`);
+			for (let a = 0, rq = chk[j], d; a < max && !isValid(r); a++) {
+				console.warn(`[Retry ${a+1}/${max}] ${(rq.url||"").split('?')[0].split('/').pop()||"Req"} in ${d = Math.min(bf << a, mBf)}ms`);
 				Utilities.sleep(d);
 				try { r = UrlFetchApp.fetch(rq.url, rq); } catch (e) { r = err(); }
 			}
