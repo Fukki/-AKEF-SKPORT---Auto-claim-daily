@@ -24,11 +24,11 @@ const Settings = {
 	serverArsenalReset: [5, "11:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverBPCycleStart: "2026-07-16 11:00:00", //format "YYYY-MM-DD HH:MM:SS"
 	serverBPCycleEnd: [48, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
-	reward_db: "reward_db",
-	discord_db: "discord_db",
-	discordColumn: 2,
-	discordUseEdit: true,
-	discordDailyPost: true,
+	reward_db: "reward_db", //PropertiesService *just name
+	discord_db: "discord_db", //can be checked in Project Settings > Script Properties
+	discordColumn: 2, //max 3 col in 1 row
+	discordUseEdit: true, //update with edit post
+	discordDailyPost: true, //new post everyday follow discordResetTime
 	retry: { max: 15, initialBackoffMs: 500, maxBackoffMs: 5000 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
