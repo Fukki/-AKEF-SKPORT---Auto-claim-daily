@@ -29,7 +29,7 @@ const Settings = {
 	discordColumn: 2, //max 3 col in 1 row
 	discordUseEdit: true, //update with edit post
 	discordDailyPost: true, //new post everyday follow discordResetTime
-	retry: { max: 15, initialBackoffMs: 500, maxBackoffMs: 5000 },
+	retry: { max: 5, initialBackoffMs: 500, maxBackoffMs: 5000 },
 	endpoints: {
 		refresh: "https://zonai.skport.com/web/v1/auth/refresh",
 		binding: "https://zonai.skport.com/api/v1/game/player/binding",
@@ -57,13 +57,11 @@ const Settings = {
 
 function main() {
 	if (!profiles.length) return [];
-	const { max: maxRetry = 1, initialBackoffMs: backoff = 500 } = Settings.retry || {};
 
-	let tokens = chunkedFetchAll(profiles.map(buildTokenRefresh)).map(r => ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
-	for (let a = 1, f; (f = tokens.map((t, i) => t === null ? i : -1).filter(i => i !== -1)).length && a < maxRetry; a++) {
-		setDelay(`refreshToken`, backoff << (a - 1));
-		chunkedFetchAll(f.map(i => buildTokenRefresh(profiles[i]))).forEach((r, k) => tokens[f[k]] = ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
-	}
+	let tokens = chunkedFetchAll(
+		profiles.map(buildTokenRefresh),
+		r => { const m = readMeta(r); return m?.code === 10002 || !!m?.json?.data?.token; }
+	).map(r => ((m = readMeta(r)) => m?.code === 10002 ? "" : (m?.json?.data?.token ?? null))());
 
 	const resolved = profiles.map((p, i) => (tokens[i] === "" || tokens[i] === null)
 		? { ...p, token: tokens[i], skGameRole: p.skGameRole || "", nickname: p.accountName || "", serverName: p.serverName || "", playerCard: {} }
@@ -71,11 +69,11 @@ function main() {
 
 	const bindIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (bindIdx.length) {
-		chunkedFetchAll(bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.bind)).filter(i => resolved[i].token)).length && a < maxRetry; a++) {
-			setDelay(`playerBinding`, backoff << (a - 1));
-			chunkedFetchAll(f.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[f[k]].bind = readMeta(r));
-		}
+		chunkedFetchAll(
+			bindIdx.map(i => buildPlayerBindingRequest(resolved[i].cred || "", resolved[i].token)),
+			r => { const m = readMeta(r); return m?.json && Settings.successCodes.has(m.json.code); }
+		).forEach((r, k) => resolved[bindIdx[k]].bind = readMeta(r));
+		
 		bindIdx.forEach(i => {
 			const bList = resolved[i].bind?.json?.data?.list?.find(a => a.appCode === Settings.appCode)?.bindingList?.[0];
 			const role = bList?.defaultRole || bList?.roles?.[0];
@@ -89,11 +87,11 @@ function main() {
 
 	const cardIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (cardIdx.length) {
-		chunkedFetchAll(cardIdx.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[cardIdx[k]].card = readMeta(r));
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.card)).filter(i => resolved[i].token)).length && a < maxRetry; a++) {
-			setDelay(`playerCard`, backoff << (a - 1));
-			chunkedFetchAll(f.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token))).forEach((r, k) => resolved[f[k]].card = readMeta(r));
-		}
+		chunkedFetchAll(
+			cardIdx.map(i => buildCardRequest(resolved[i].cred || "", resolved[i].token)),
+			r => { const m = readMeta(r); return m?.json && Settings.successCodes.has(m.json.code); }
+		).forEach((r, k) => resolved[cardIdx[k]].card = readMeta(r));
+		
 		cardIdx.forEach(i => {
 			const d = resolved[i].card?.json?.data?.detail;
 			if (!d) return;
@@ -111,11 +109,10 @@ function main() {
 
 	const reqIdx = resolved.map((p, i) => (p.token === "" || p.token === null) ? -1 : i).filter(i => i !== -1);
 	if (reqIdx.length) {
-		chunkedFetchAll(reqIdx.map(i => buildAttendRequest(resolved[i], resolved[i].token))).forEach((r, k) => resolved[reqIdx[k]].meta = readMeta(r));
-		for (let a = 1, f; (f = failedIdx(resolved.map(p => p.meta)).filter(i => resolved[i].token)).length && a < maxRetry; a++) {
-			setDelay(`rewardClaim`, backoff << (a - 1));
-			chunkedFetchAll(f.map(i => buildAttendRequest(resolved[i], resolved[i].token))).forEach((r, k) => resolved[f[k]].meta = readMeta(r));
-		}
+		chunkedFetchAll(
+			reqIdx.map(i => buildAttendRequest(resolved[i], resolved[i].token)),
+			r => { const m = readMeta(r); return m?.json && Settings.successCodes.has(m.json.code); }
+		).forEach((r, k) => resolved[reqIdx[k]].meta = readMeta(r));
 	}
 
 	const results = resolved.map((p, i) => formatResult(p, p.meta, i));
@@ -151,7 +148,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db;
 	const hooks = discordApp.filter(o => o.notify && o.discordWebhook);
 	const k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
-	const { max: maxRetry = 5, initialBackoffMs: backoff = 1000 } = Settings.retry || {};
+	
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","msgMap":{}}');
 	const checkReset = checkDailyReset(db.date, Settings.discordResetTime || "00:00:00");
 	if (!useEdit || (useEdit && Settings.discordDailyPost && checkReset.isReset)) {
@@ -169,17 +166,17 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 			t.setDate(t.getDate() + d + (!d && t <= n ? (type == 'weekly' ? 7 : 1) : 0));
 			return Math.floor(t / 1000);
 		}
-		const b = new Date(opt.replace(" ", "T")), k = a * 864e5;
+		const b = new Date(opt.replace(" ", "T")), cyc = a * 864e5;
 		b.setHours(...rt.split(':'), 0);
-		return Math.floor((+b + Math.ceil((n - b + 1) / k) * k) / 1000);
+		return Math.floor((+b + Math.ceil((n - b + 1) / cyc) * cyc) / 1000);
 	};
 
 	const embed = {
-		title: `📝 Endfield - Report [<t:${Math.floor(new Date().getTime() / 1000)}:d>]`,
+		title: `📝 Endfield - Report [<t:${nowTs()}:d>]`,
 		color: rows.every(r => r.success) ? [0xFF0000, 0xFFFF00, 0xFF69B4, 0x00A86B, 0xFFA500, 0x00BFFF, 0x800080][new Date().getDay()] : 0x2F3136,
 		thumbnail: { url: "https://static.skport.com/image/common/20260122/a2ab8d4de53aabd3b1c305cbdbcab688.png" },
 		fields: [
-			{ name: "**Useful Link**", value: "[App](https://script.google.com/home/my) | [Home](https://endfield.gryphline.com/en-us) | [Sched](https://endfield.gryphline.com/en-us#calendar) | [SKP](https://www.skport.com/) | [Wiki](https://wiki.skport.com/endfield) | [Guide](https://www.prydwen.gg/arknights-endfield/) | [Map](https://opendfieldmap.org/) | [BP#1](https://endfieldtools.dev/community-factories/) | [BP#2](https://talospioneers.com) | [Ess](https://endfieldtools.dev/weapon-essence-solver/)", inline: false },
+			{ name: "**Useful Link**", value: "[App](https://script.google.com/home/my) | [Home](https://endfield.gryphline.com/) | [Sched](https://endfield.gryphline.com/en-us#calendar) | [SKP](https://www.skport.com/) | [Wiki](https://wiki.skport.com/endfield) | [Guide](https://www.prydwen.gg/arknights-endfield/) | [Map](https://opendfieldmap.org/) | [BP#1](https://endfieldtools.dev/community-factories/) | [BP#2](https://talospioneers.com) | [Ess](https://endfieldtools.dev/weapon-essence-solver/)", inline: false },
 			{ name: "**Server Reset**", value: `🌸 Daily: <t:${getReset('daily', Settings.serverDailyReset)}:R>\n🗡️ Arsenal: <t:${getReset('weekly', Settings.serverArsenalReset)}:R>`, inline: true },
 			{ name: `\u200B`, value: `📅 Weekly: <t:${getReset('weekly', Settings.serverWeelyReset)}:R>\n🌟 BP: <t:${getReset('cycle', Settings.serverBPCycleStart, Settings.serverBPCycleEnd)}:R>`, inline: true },
 			{ name: "", value: "", inline: false },
@@ -193,7 +190,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		timestamp: new Date().toISOString()
 	};
 
-	let activeHooks = hooks.map(h => {
+	const activeHooks = hooks.map(h => {
 		const hash = k(h.discordWebhook), msgId = db.msgMap[hash];
 		return {
 			...h, hash,
@@ -204,26 +201,25 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		};
 	});
 
-	for (let a = 1; a <= maxRetry && activeHooks.length > 0; a++) {
-		const failed = [];
-		chunkedFetchAll(activeHooks).forEach((r, i) => {
-			const m = readMeta(r), hash = activeHooks[i].hash;
-			if (m.code >= 200 && m.code < 300) {
-				if (useEdit && m.json?.id) db.msgMap[hash] = m.json.id;
-			} else failed.push(activeHooks[i]);
-		});
-		activeHooks = failed;
-		if (activeHooks.length > 0 && a < maxRetry) setDelay(`discordPost`, backoff << (a - 1));
+	if (activeHooks.length > 0) {
+		chunkedFetchAll(activeHooks, r => r.getResponseCode() >= 200 && r.getResponseCode() < 300)
+			.forEach((r, i) => {
+				const m = readMeta(r), hash = activeHooks[i].hash;
+				if (m.code >= 200 && m.code < 300 && useEdit && m.json?.id) {
+					db.msgMap[hash] = m.json.id;
+				}
+			});
 	}
+
 	if (useEdit) store.setProperty(key, JSON.stringify(db));
 }
 
 const buildPlayerCard = (p, b = false) => {
-  if (!p?.playerCard) return "";
-  const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
+	if (!p?.playerCard) return "";
+	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
 
-  const wrap = t => b ? `\`${t}\`` : t;
-  const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
+	const wrap = t => b ? `\`${t}\`` : t;
+	const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
 	const fmt = ts => {
 		if (b) return `<t:${ts}:R>`;
 		const d = (((ts > 1e11 ? ts / 1e3 : ts) - Date.now() / 1e3) | 0), a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
@@ -236,17 +232,17 @@ const buildPlayerCard = (p, b = false) => {
 		return (f ? num.toFixed(d) : (Number.isInteger(num) ? num.toString() : num.toFixed(d).replace(/\.?0+$/, ""))) + units[uIdx];
 	};
 
-  let aSum = 0, aMax = 0, aStr = "";
-  dl.forEach(d => {
-    const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), f = s.filter(x => +x.remainMoney === +x.moneyMax).length;
-    const remainList = s.map((x, i) => `\u2003\u2003[${i + 1}]: ${shn(x.remainMoney)}/${shn(x.moneyMax)}`).join("\n");
-    aSum += cur; aMax += max;
-    aStr += `\n\u2003→ ${d.name.trim().split(/\s+/)[0]} [${f}/${s.length}]: ${s.length > 0 && f === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}${remainList ? "\n" + remainList : ""}`;
-  });
+	let aSum = 0, aMax = 0, aStr = "";
+	dl.forEach(d => {
+		const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length;
+		const remainList = s.map((x, i) => `\u2003\u2003[${i + 1}]: ${shn(x.remainMoney)}/${shn(x.moneyMax)}`).join("\n");
+		aSum += cur; aMax += max;
+		aStr += `\n\u2003→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length > 0 && fd === s.length ? wrap("Fulled") : `${max ? ((cur / max) * 100).toFixed(2) : "0.00"}%`}${remainList ? "\n" + remainList : ""}`;
+	});
 
-  const eStr = cap => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
+	const eStr = cap => en >= cap ? wrap("Fulled") : fmt(gTs(en, cap));
 
-  return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[160, 200, 240, em].map(v => `\u2003→ ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
+	return `\n🔑 Login: ${fmt(bs.lastLoginTime)}\n⚡️ Energy: ${en}/${em}\n${[160, 200, 240, em].map(v => `\u2003→ ${v}: ${eStr(v)}`).join("\n")}\n🏠 AIC Funds: ${aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00"}%${aStr}\n🌟 BP: ${bp.curLevel}/${bp.maxLevel}\n🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}\n📅 Weekly: ${wm.score}/${wm.total}`;
 };
 
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
@@ -254,8 +250,6 @@ const readJson = (o, size = 5000) => { const s = new WeakSet(), str = JSON.strin
 const parseJson = s => { try { return JSON.parse(s); } catch (e) { return null; } };
 const nowTs = () => String(Math.floor(Date.now() / 1000));
 const bytesToHex = b => b.map(x => ("0" + ((x & 0xFF).toString(16))).slice(-2)).join("");
-const setDelay = (s, d) => (d = Math.min(d, Settings.retry?.maxBackoffMs || d), console.warn(`${s} Retry in ${d}ms`), Utilities.sleep(d));
-const failedIdx = arr => arr.map((m, i) => (!m?.json || !Settings.successCodes.has(m.json.code) ? i : -1)).filter(i => i >= 0);
 const checkDailyReset = (d, t = "00:00:00") => {
 	const n = new Date(), [y, m, x] = (d || "").split("-").map(Number), td = new Date(n - n.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 	const r = !d || (g => (g.setDate(g.getDate() + 1), !(g > n)))(new Date(y, m - 1, x, ...t.split(":").map(Number)));
@@ -268,12 +262,20 @@ function generateSign(path, body, ts, token, plat, v) {
 	return bytesToHex(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, bytesToHex(hmac)));
 }
 
-function chunkedFetchAll(reqs) {
-	const out = [], size = Settings.chunkSize || 20;
-	for (let i = 0; i < reqs.length; i += size)
-		try { out.push(...UrlFetchApp.fetchAll(reqs.slice(i, i + size))); }
-		catch (e) { console.error(`Chunk error at index ${i}:`, e.message); out.push(...reqs.slice(i, i + size).map(() => ({ getContentText: () => "{}", getResponseCode: () => 500 }))); }
-	return out;
+function chunkedFetchAll(reqs, isValid = r => r.getResponseCode() >= 200 && r.getResponseCode() < 300) {
+	const { chunkSize: sz = 20, retry: { max = 15, initialBackoffMs: bf = 500, maxBackoffMs: mBf = 5000 } = {} } = Settings;
+	const err = () => ({ getContentText: () => "{}", getResponseCode: () => 500 });
+	return Array.from({ length: Math.ceil(reqs.length / sz) }, (_, i) => reqs.slice(i * sz, (i + 1) * sz)).flatMap(chk => {
+		let res; try { res = UrlFetchApp.fetchAll(chk); } catch (e) { res = chk.map(err); }
+		return res.map((r, j) => {
+			for (let a = 0, rq = chk[j], d; a < max - 1 && !isValid(r); a++) {
+				console.warn(`[Retry ${a+1}/${max-1}] ${(rq.url||"").split('?')[0].split('/').pop()||"Req"} in ${d = Math.min(bf << a, mBf)}ms`);
+				Utilities.sleep(d);
+				try { r = UrlFetchApp.fetch(rq.url, rq); } catch (e) { r = err(); }
+			}
+			return r;
+		});
+	});
 }
 
 const buildTokenRefresh = p => ({ url: Settings.endpoints.refresh, method: "get", muteHttpExceptions: true, headers: { "User-Agent": Settings.userAgent, ...Settings.defaultHeaders, cred: p.cred, platform: Settings.platform, vName: Settings.vName } });
