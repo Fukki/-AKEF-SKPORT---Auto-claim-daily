@@ -269,7 +269,7 @@ function chunkedFetchAll(reqs, isValid = r => r.getResponseCode() >= 200 && r.ge
 		let res; try { res = UrlFetchApp.fetchAll(chk); } catch (e) { res = chk.map(err); }
 		return res.map((r, j) => {
 			for (let a = 0, rq = chk[j], d; a < max && !isValid(r); a++) {
-				console.warn(`[Retry ${a+1}/${max}] ${(rq.url||"").split('?')[0].split('/').pop()||"Req"} in ${d = Math.min(bf << a, mBf)}ms`);
+				console.warn(`[Retry ${a+1}/${max}] ${rq.url || "Req"} in ${d = Math.min(bf << a, mBf)}ms`);
 				Utilities.sleep(d);
 				try { r = UrlFetchApp.fetch(rq.url, rq); } catch (e) { r = err(); }
 			}
