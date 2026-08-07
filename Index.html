@@ -1,133 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-<base target="_top">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg-color:#36393f;--card-bg:#2f3136;--text-main:#dcddde;--text-muted:#8e9297;--border:#202225;--success:#43b581;--error:#f04747;--discord-embed:#202225}
-body{font-family:'Inter',sans-serif;background-color:var(--bg-color);color:var(--text-main);margin:0;padding:20px}
-.header{text-align:center;margin-bottom:20px}
-.header h1{margin:0;font-size:24px;color:#fff}
-.header p{margin:5px 0 0;color:var(--text-muted);font-size:14px}
-.global-reset-box{max-width:900px;margin:16px auto 0;background-color:var(--card-bg);border-radius:8px;padding:16px 20px;box-shadow:0 4px 6px rgba(0,0,0,0.1);text-align:left}
-.global-reset-header{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;text-align:left}
-.global-reset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-family:monospace;font-size:13px;color:#a3a6aa;text-align:center}
-@media(max-width:768px){.global-reset-grid{grid-template-columns:repeat(2,1fr);gap:12px}}
-#dashboard-grid{display:grid;gap:15px}
-.card{background-color:var(--card-bg);border-radius:8px;border-left:4px solid var(--discord-embed);padding:16px;box-shadow:0 4px 6px rgba(0,0,0,0.1);display:flex;flex-direction:column;gap:12px}
-.card.success{border-left-color:var(--success)}
-.card.error{border-left-color:var(--error)}
-.card-header{font-weight:700;font-size:18px;color:#fff;display:flex;align-items:center;gap:10px}
-.avatar-img{width:32px;height:32px;border-radius:6px;object-fit:cover;background:#202225}
-.status-badge{font-size:12px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.1);margin-left:auto}
-.section-title{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
-.content-box{font-size:14px;line-height:1.6;background:var(--bg-color);padding:8px 12px;border-radius:4px}
-.stats-box{font-size:13px;line-height:1.6;font-family:monospace;color:#a3a6aa;white-space:nowrap}
-.timestamp{background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px;color:#fff}
-.inline-icon{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:6px;margin-bottom:3px}
-.loader{text-align:center;color:var(--text-muted);padding:50px}
-</style>
+	<base target="_top">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+	<style>
+		:root { --bg-color: #36393f; --card-bg: #2f3136; --text-main: #dcddde; --text-muted: #8e9297; --border: #202225; --success: #43b581; --error: #f04747; --discord-embed: #202225; }
+		body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+		.header { text-align: center; margin-bottom: 20px; }
+		.header h1 { margin: 0; font-size: 24px; color: #fff; }
+		.header p { margin: 5px 0 0; color: var(--text-muted); font-size: 14px; }
+		.global-reset-box { max-width: 900px; margin: 16px auto 0; background-color: var(--card-bg); border-radius: 8px; padding: 16px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: left; }
+		.global-reset-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; text-align: left; }
+		.global-reset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-family: monospace; font-size: 13px; color: #a3a6aa; text-align: center; }
+		@media(max-width: 768px) { .global-reset-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+		#dashboard-grid { display: grid; gap: 15px; }
+		.card { background-color: var(--card-bg); border-radius: 8px; border-left: 4px solid var(--discord-embed); padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 12px; }
+		.card.success { border-left-color: var(--success); }
+		.card.error { border-left-color: var(--error); }
+		.card-header { font-weight: 700; font-size: 18px; color: #fff; display: flex; align-items: center; gap: 10px; }
+		.avatar-img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; background: #202225; }
+		.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+		.content-box { font-size: 14px; line-height: 1.6; background: var(--bg-color); padding: 8px 12px; border-radius: 4px; }
+		.stats-box { font-size: 13px; line-height: 1.6; font-family: monospace; color: #a3a6aa; white-space: nowrap; }
+		.timestamp { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; color: #fff; }
+		.inline-icon { width: 20px; height: 20px; border-radius: 4px; vertical-align: middle; margin-right: 6px; margin-bottom: 3px; }
+		.loader { text-align: center; color: var(--text-muted); padding: 50px; }
+	</style>
 </head>
 <body>
-<div class="header">
-  <h1>📝 Endfield - Report Dashboard</h1>
-  <p id="last-update">Loading...</p>
-  <div id="global-reset" class="global-reset-box" style="display:none;"></div>
-</div>
-<div id="dashboard-grid">
-  <div class="loader">Fetching data from server...</div>
-</div>
-<script>
-const WebConfig={columns:3,minColumnWidth:"300px"};
-let liveTimer;
-window.onload=function(){setupGrid();google.script.run.withSuccessHandler(renderData).getWebData();};
-function setupGrid(){
-  const g=document.getElementById('dashboard-grid');
-  g.style.gridTemplateColumns=`repeat(auto-fit, minmax(min(100%, ${WebConfig.minColumnWidth}), 1fr))`;
-  if(window.innerWidth>768)g.style.gridTemplateColumns=`repeat(${WebConfig.columns}, 1fr)`;
-}
-const Utils={
-  getEnergyTs:(c,m,s=432000)=>Math.floor(c>=m?Date.now():(Math.ceil(Date.now()/s)*s+(m-c-1)*s)/1e3),
-  shn:(n,d=2)=>{let u=0,x=+n,un=["","k","m","b"];while(x>=1000&&u<un.length-1){x/=1000;u++;}return(Number.isInteger(x)?x.toString():x.toFixed(d).replace(/\.?0+$/,""))+un[u];},
-  formatRelativeTime:(t)=>{
-    const d=(t-Date.now())/1000,a=Math.abs(d),f=(n,u)=>d>0?`in ${n} ${u}${n>1?"s":""}`:`${n} ${u}${n>1?"s":""} ago`;
-    if(a<60)return f(a|0,"sec");if(a<3600)return f((a/60)|0,"min");if(a<864e2)return f((a/3600)|0,"hour");return f((a/864e2)|0,"day");
-  }
-};
-function renderData(data){
-  document.getElementById('last-update').innerText=`Last Update: ${new Date(data.updatedAt).toLocaleString()}`;
-  
-  const resetEl = document.getElementById('global-reset');
-  if(data.serverReset){
-    const fmtRst=(ts)=>ts?`<span class="live-time timestamp" data-ts="${ts*1000}"></span>`:`-`;
-    resetEl.style.display = 'block';
-    resetEl.innerHTML = `
-      <div class="global-reset-header">Server Reset</div>
-      <div class="global-reset-grid">
-        <div>🌸 Daily: ${fmtRst(data.serverReset.daily)}</div>
-        <div>📅 Weekly: ${fmtRst(data.serverReset.weekly)}</div>
-        <div>🗡️ Arsenal: ${fmtRst(data.serverReset.arsenal)}</div>
-        <div>🌟 BP: ${fmtRst(data.serverReset.bp)}</div>
-      </div>
-    `;
-  } else {
-    resetEl.style.display = 'none';
-  }
-
-  const g=document.getElementById('dashboard-grid');g.innerHTML='';
-  if(!data.accounts||data.accounts.length===0){g.innerHTML='<div class="loader">ไม่พบข้อมูล กรุณารัน Script ก่อน</div>';return;}
-  data.accounts.forEach(acc=>{
-    const c=document.createElement('div');c.className=`card ${acc.success?'success':'error'}`;
-    let rH=acc.msg;
-    if(acc.itemIcon_url&&acc.itemIcon_url.length>0){
-      rH=acc.msg.split('\n').map((l,i)=>acc.itemIcon_url[i]?l.replace(/🎁\s*/,`<img src="${acc.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer" alt="Item"> `):l).join('<br>');
-    }else{rH=rH.replace(/\n/g,'<br>');}
-    const sH=buildStatsHtml(acc.playerCard);
-    const avatarUrl = acc.playerCard?.base?.avatarUrl || '';
-    const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="avatar-img" referrerpolicy="no-referrer" alt="Avatar">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`;
-    
-    c.innerHTML=`
-      <div class="card-header">${avatarHtml} ${acc.nickname} (${acc.serverName})</div>
-      <div><div class="section-title">Status</div><div class="content-box">${acc.status}</div></div>
-      <div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>
-      ${sH?`<div><div class="section-title">Player Stats</div><div class="content-box stats-box">${sH}</div></div>`:''}
-    `;
-    g.appendChild(c);
-  });
-  if(liveTimer)clearInterval(liveTimer);
-  updateTimestamps();
-  liveTimer=setInterval(updateTimestamps,1000);
-}
-function buildStatsHtml(card){
-  if(!card||!card.base)return"";
-  const{base:bs,domain:dl,dungeon:dg,bpSystem:bp,dailyMission:dm,weeklyMission:wm}=card;
-  const en=+dg.curStamina,em=+dg.maxStamina;
-  let aSum=0,aMax=0,aStr="";
-  dl.forEach(d=>{
-    const s=d.settlements.filter(x=>+x.level>0);
-    const cur=s.reduce((a,x)=>a+ +x.remainMoney,0),max=s.reduce((a,x)=>a+ +x.moneyMax,0),fd=s.filter(x=>+x.remainMoney===+x.moneyMax).length;
-    const rL=s.map((x,i)=>`&emsp;&emsp;[${i+1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
-    aSum+=cur;aMax+=max;
-    let fS=(s.length>0&&fd===s.length)?'<span class="timestamp">Fulled</span>':(max?((cur/max)*100).toFixed(2):"0.00")+'%';
-    aStr+=`<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${fS}`;
-    if(rL)aStr+=`<br>${rL}`;
-  });
-  const fT=aMax?((aSum/aMax)*100).toFixed(2):"0.00";
-
-  return`🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime*1000}"></span><br>`+
-        `🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>`+
-        `📅 Weekly: ${wm.score}/${wm.total}<br>`+
-        `🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>`+
-        `⚡️ Energy: ${en}/${em}<br>`+
-        `${[160,200,240,em].map(v=>{const ts=Utils.getEnergyTs(en,v);return`&emsp;→ ${v}: `+(en>=v?`<span class="timestamp">Fulled</span>`:`<span class="live-time timestamp" data-ts="${ts*1000}"></span>`);}).join('<br>')}<br>`+
-        `🏠 AIC Funds: ${fT}%${aStr}`;
-}
-function updateTimestamps(){
-  document.querySelectorAll('.live-time').forEach(el=>{
-    const t=parseInt(el.getAttribute('data-ts'));
-    if(t)el.innerText=Utils.formatRelativeTime(t);
-  });
-}
-</script>
+	<div class="header">
+		<h1>📝 Endfield - Report Dashboard</h1>
+		<p id="last-update">Loading...</p>
+		<div id="global-reset" class="global-reset-box" style="display:none;"></div>
+	</div>
+	<div id="dashboard-grid">
+		<div class="loader">Fetching data from server...</div>
+	</div>
+	<script>
+		const WebConfig = { columns: 3, minColumnWidth: "300px" };
+		let liveTimer;
+		window.onload = () => { setupGrid(); google.script.run.withSuccessHandler(renderData).getWebData(); };
+		
+		function setupGrid() {
+			const g = document.getElementById('dashboard-grid');
+			g.style.gridTemplateColumns = `repeat(auto-fit, minmax(min(100%, ${WebConfig.minColumnWidth}), 1fr))`;
+			if (window.innerWidth > 768) g.style.gridTemplateColumns = `repeat(${WebConfig.columns}, 1fr)`;
+		}
+		
+		const Utils = {
+			getEnergyTs: (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3),
+			shn: (n, d = 2) => {
+				let u = 0, x = +n, un = ["", "k", "m", "b"];
+				while (x >= 1000 && u < un.length - 1) { x /= 1000; u++; }
+				return (Number.isInteger(x) ? x.toString() : x.toFixed(d).replace(/\.?0+$/, "")) + un[u];
+			},
+			formatRelativeTime: (t) => {
+				const d = (t - Date.now()) / 1000, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
+				if (a < 60) return f(a | 0, "sec");
+				if (a < 3600) return f((a / 60) | 0, "min");
+				if (a < 864e2) return f((a / 3600) | 0, "hour");
+				return f((a / 864e2) | 0, "day");
+			}
+		};
+		
+		function renderData(data) {
+			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString()}`;
+			
+			const resetEl = document.getElementById('global-reset');
+			if (data.serverReset) {
+				const fmtRst = (ts) => ts ? `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>` : `-`;
+				resetEl.style.display = 'block';
+				resetEl.innerHTML = `
+					<div class="global-reset-header">Server Reset</div>
+					<div class="global-reset-grid">
+						<div>🌸 Daily: ${fmtRst(data.serverReset.daily)}</div>
+						<div>📅 Weekly: ${fmtRst(data.serverReset.weekly)}</div>
+						<div>🗡️ Arsenal: ${fmtRst(data.serverReset.arsenal)}</div>
+						<div>🌟 BP: ${fmtRst(data.serverReset.bp)}</div>
+					</div>
+				`;
+			} else {
+				resetEl.style.display = 'none';
+			}
+			
+			const g = document.getElementById('dashboard-grid');
+			g.innerHTML = '';
+			if (!data.accounts || data.accounts.length === 0) {
+				g.innerHTML = '<div class="loader">ไม่พบข้อมูล กรุณารัน Script ก่อน</div>';
+				return;
+			}
+			
+			data.accounts.forEach(acc => {
+				const c = document.createElement('div');
+				c.className = `card ${acc.success ? 'success' : 'error'}`;
+				let rH = acc.msg;
+				if (acc.itemIcon_url && acc.itemIcon_url.length > 0) {
+					rH = acc.msg.split('\n').map((l, i) => acc.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${acc.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer" alt="Item"> `) : l).join('<br>');
+				} else {
+					rH = rH.replace(/\n/g, '<br>');
+				}
+				const sH = buildStatsHtml(acc.playerCard);
+				const avatarUrl = acc.playerCard?.base?.avatarUrl || '';
+				const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="avatar-img" referrerpolicy="no-referrer" alt="Avatar">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`;
+				
+				c.innerHTML = `
+					<div class="card-header">${avatarHtml} ${acc.nickname} (${acc.serverName})</div>
+					<div><div class="section-title">Status</div><div class="content-box">${acc.status}</div></div>
+					<div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>
+					${sH ? `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">${sH}</div></div>` : ''}
+				`;
+				g.appendChild(c);
+			});
+			
+			if (liveTimer) clearInterval(liveTimer);
+			updateTimestamps();
+			liveTimer = setInterval(updateTimestamps, 1000);
+		}
+		
+		function buildStatsHtml(card) {
+			if (!card || !card.base) return "";
+			const { base: bs, domain: dl, dungeon: dg, bpSystem: bp, dailyMission: dm, weeklyMission: wm } = card;
+			const en = +dg.curStamina, em = +dg.maxStamina;
+			let aSum = 0, aMax = 0, aStr = "";
+			dl.forEach(d => {
+				const s = d.settlements.filter(x => +x.level > 0);
+				const cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length;
+				const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
+				aSum += cur; aMax += max;
+				let fS = (s.length > 0 && fd === s.length) ? '<span class="timestamp">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%';
+				aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${fS}`;
+				if (rL) aStr += `<br>${rL}`;
+			});
+			const fT = aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00";
+			
+			return `🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1000}"></span><br>` +
+				`🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>` +
+				`📅 Weekly: ${wm.score}/${wm.total}<br>` +
+				`🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>` +
+				`⚡️ Energy: ${en}/${em}<br>` +
+				`${[160, 200, 240, em].map(v => { const ts = Utils.getEnergyTs(en, v); return `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp">Fulled</span>` : `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>`); }).join('<br>')}<br>` +
+				`🏠 AIC Funds: ${fT}%${aStr}`;
+		}
+		
+		function updateTimestamps() {
+			document.querySelectorAll('.live-time').forEach(el => {
+				const t = parseInt(el.getAttribute('data-ts'));
+				if (t) el.innerText = Utils.formatRelativeTime(t);
+			});
+		}
+	</script>
 </body>
 </html>
