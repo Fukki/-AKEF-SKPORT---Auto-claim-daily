@@ -184,7 +184,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 				name: `👤 **${r.nickname} (${r.serverName})**`,
 				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${r.msg.replace(/\n/g, '\n\u2003')}${buildPlayerCard(r, true).replace(/\n/g, '\n\u2003')}`,
 				inline: true
-			}, ...((i + 1) % colCount === 0 && i + 1 < rows.length ? [{ name: "", value: "\u200B", inline: false }] : [])])
+			}, ...((i + 1) % colCount === 0 && i + 1 < rows.length ? [{ name: "", value: "", inline: false }] : [])])
 		],
 		footer: { text: "Updated on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
 		timestamp: new Date().toISOString()
