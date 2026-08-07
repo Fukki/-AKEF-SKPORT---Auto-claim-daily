@@ -86,7 +86,7 @@
 			const g = document.getElementById('dashboard-grid');
 			g.innerHTML = '';
 			if (!data.accounts || data.accounts.length === 0) {
-				g.innerHTML = '<div class="loader">ไม่พบข้อมูล กรุณารัน Script ก่อน</div>';
+				g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
 				return;
 			}
 			
