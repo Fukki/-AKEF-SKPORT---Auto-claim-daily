@@ -95,15 +95,7 @@ function main() {
 		cardIdx.forEach(i => {
 			const d = resolved[i].card?.json?.data?.detail;
 			if (!d) return;
-
-			resolved[i].playerCard = {
-				base: d.base,
-				domain: d.domain,
-				dungeon: d.dungeon,
-				bp: d.bpSystem,
-				daily: d.dailyMission,
-				weekly: d.weeklyMission
-			};
+			resolved[i].playerCard = d;
 		});
 	}
 
@@ -216,7 +208,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 
 const buildPlayerCard = (p, b = false) => {
 	if (!p?.playerCard) return "";
-	const { base: bs, domain: dl, dungeon: dg, bp, daily: dm, weekly: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
+	const { base: bs, domain: dl, dungeon: dg, bpSystem: bp, dailyMission: dm, weeklyMission: wm } = p.playerCard, en = +dg.curStamina, em = +dg.maxStamina;
 
 	const wrap = t => b ? `\`${t}\`` : t;
 	const gTs = (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3);
