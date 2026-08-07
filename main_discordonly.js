@@ -21,7 +21,7 @@ const Settings = {
 	rewardResetTime: "23:00:00", //format "HH:MM:SS"
 	serverDailyReset: "03:00:00", //format "HH:MM:SS"
 	serverWeelyReset: [1, "03:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
-	serverArsenalReset: [5, "11:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
+	serverArsenalReset: [4, "11:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverBPCycleStart: "2026-07-16 11:00:00", //format "YYYY-MM-DD HH:MM:SS"
 	serverBPCycleEnd: [48, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
 	reward_db: "reward_db", //PropertiesService *just name
@@ -184,7 +184,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 				name: `👤 **${r.nickname} (${r.serverName})**`,
 				value: `**Status:**\n\u2003${r.status}\n**Response:**\n\u2003${r.msg.replace(/\n/g, '\n\u2003')}${buildPlayerCard(r, true).replace(/\n/g, '\n\u2003')}`,
 				inline: true
-			}, ...((i + 1) % colCount === 0 && i + 1 < rows.length ? [{ name: "", value: "", inline: false }] : [])])
+			}, ...((i + 1) % colCount === 0 && i + 1 < rows.length ? [{ name: "", value: "\u200B", inline: false }] : [])])
 		],
 		footer: { text: "Updated on", icon_url: "https://assets.skport.com/assets/favicon.ico" },
 		timestamp: new Date().toISOString()
@@ -195,7 +195,7 @@ function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Set
 		return {
 			...h, hash,
 			url: (useEdit && msgId) ? `${h.discordWebhook}/messages/${msgId}` : h.discordWebhook + "?wait=true",
-			method: (useEdit && msgId) ? "patch" : "post",
+			method: (useEdit && msgId) ? "PATCH" : "POST",
 			payload: JSON.stringify({ username: "Endfield Assistant", avatar_url: "https://static.skport.com/image/common/20260403/f266b2fc7ac711dc39f89929ba254681.png", embeds: [embed] }),
 			contentType: "application/json", muteHttpExceptions: true
 		};
