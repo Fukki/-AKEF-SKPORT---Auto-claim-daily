@@ -42,7 +42,7 @@
 **Web App**
 1. In the top-left File panel, click + (Add a file).
 2. Select HTML.
-3. Enter "index" as the file name.
+3. Enter "Index" (uppercase I, not "index") as the file name.
 4. Press Enter to create the file.
 
 
