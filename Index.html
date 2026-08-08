@@ -23,7 +23,7 @@
 		.live-time,.energy-hover{cursor:pointer}
 		.inline-icon{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:6px;margin-bottom:3px}
 		.loader{text-align:center;color:var(--text-muted);padding:50px}
-		#custom-tooltip{position:fixed;background:#18191c;color:#dcddde;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;pointer-events:none;z-index:9999;opacity:0;visibility:hidden;box-shadow:0 4px 8px rgba(0,0,0,.3);white-space:nowrap;transition:opacity .1s ease}
+		#custom-tooltip{position:fixed;background:#18191c;color:#dcddde;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;pointer-events:none;z-index:9999;opacity:0;visibility:hidden;box-shadow:0 4px 8px rgba(0,0,0,.3);max-width:90vw;white-space:normal;word-break:break-word;transition:opacity .1s ease}
 		#custom-tooltip.show{opacity:1;visibility:visible}
 	</style>
 </head>
@@ -45,7 +45,7 @@
 				if (energyEl && energyEl.dataset.energyTs) { tt.innerText = `Next energy: ${Utils.formatRelativeTime(parseInt(energyEl.dataset.energyTs))}`; tt.classList.add('show'); }
 				else if (e.target.classList.contains('live-time') && e.target.dataset.full) { tt.innerText = e.target.dataset.full; tt.classList.add('show'); }
 			});
-			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { let x = e.clientX + 15, y = e.clientY + 15; if (x + tt.offsetWidth > window.innerWidth) x = e.clientX - tt.offsetWidth - 10; if (y + tt.offsetHeight > window.innerHeight) y = e.clientY - tt.offsetHeight - 10; tt.style.left = x + 'px'; tt.style.top = y + 'px'; }});
+			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { let x = e.clientX + 15, y = e.clientY + 15; if (x + tt.offsetWidth > window.innerWidth) x = Math.max(5, e.clientX - tt.offsetWidth - 10); if (y + tt.offsetHeight > window.innerHeight) y = Math.max(5, e.clientY - tt.offsetHeight - 10); tt.style.left = x + 'px'; tt.style.top = y + 'px'; }});
 			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover')) tt.classList.remove('show'); });
 			google.script.run.withSuccessHandler(renderData).getWebData();
 		};
