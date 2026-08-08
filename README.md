@@ -37,3 +37,24 @@
 6. In the bottom-left corner, click your profile icon and select Copy User ID.
 7. Then paste it into discordApp → myDiscordID in the editor.
 8. Save the changes or run the script again.
+
+
+**Web App**
+1. In the top-left File panel, click + (Add a file).
+2. Select HTML.
+3. Enter "index" as the file name.
+4. Press Enter to create the file.
+
+
+**Deploy the Web App**
+1. Click Deploy in the top-right corner of the Google Apps Script editor.
+2. Select New deployment.
+3. Click the Select type button.
+4. Select Web app.
+5. Under Execute as, select Me.
+6. Under Who has access, select the appropriate option, such as Anyone.
+7. Click Deploy.
+8. If prompted, review and authorize the required permissions.
+9. After deployment is complete, copy the Web app URL.
+10. Open the URL in your browser to access your Web App.
+**Note:** If you make changes to your code after deployment, you may need to create a new deployment version or update the existing deployment for the changes to take effect.
