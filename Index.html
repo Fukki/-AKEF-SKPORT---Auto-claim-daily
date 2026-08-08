@@ -22,7 +22,7 @@
 		.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
 		.content-box { font-size: 14px; line-height: 1.6; background: var(--bg-color); padding: 8px 12px; border-radius: 4px; }
 		.stats-box { font-size: 13px; font-family: monospace; color: #a3a6aa; white-space: nowrap; }
-		.timestamp { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; color: #fff; }
+		.timestamp { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; color: #fff; cursor: help; border-bottom: 1px dotted rgba(255,255,255,0.3); }
 		.inline-icon { width: 20px; height: 20px; border-radius: 4px; vertical-align: middle; margin-right: 6px; margin-bottom: 3px; }
 		.loader { text-align: center; color: var(--text-muted); padding: 50px; }
 	</style>
@@ -55,7 +55,7 @@
 		};
 		
 		function renderData(data) {
-			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString()}`;
+			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium', hour12: true })}`;
 			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid');
 			
 			if (data.serverReset) {
@@ -88,12 +88,12 @@
 				const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length;
 				aS += cur; aM += max;
 				const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
-				aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span class="timestamp">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
+				aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span class="timestamp" title="Fulled">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
 			});
-			return `🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>📅 Weekly: ${wm.score}/${wm.total}<br>🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>⚡️ Energy: ${en}/${em}<br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp">Fulled</span>` : `<span class="live-time timestamp" data-ts="${Utils.getEnergyTs(en, v) * 1e3}"></span>`)).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}`;
+			return `🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>📅 Weekly: ${wm.score}/${wm.total}<br>🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>⚡️ Energy: ${en}/${em}<br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp" title="Fulled">Fulled</span>` : `<span class="live-time timestamp" data-ts="${Utils.getEnergyTs(en, v) * 1e3}"></span>`)).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}`;
 		}
 		
-		const updateTimestamps = () => document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) el.innerText = Utils.formatRelativeTime(t); });
+		const updateTimestamps = () => document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) { el.innerText = Utils.formatRelativeTime(t); if (!el.title) el.title = new Date(t).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true }); } });
 	</script>
 </body>
 </html>
