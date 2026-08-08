@@ -19,7 +19,8 @@
 		.section-title{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
 		.content-box{font-size:14px;line-height:1.6;background:var(--bg-color);padding:8px 12px;border-radius:4px}
 		.stats-box{font-size:13px;font-family:monospace;color:#a3a6aa;white-space:nowrap}
-		.live-time{cursor:pointer;color:#fff}
+		.live-time,.live-energy{color:#fff}
+		.live-time,.energy-hover{cursor:pointer}
 		.inline-icon{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:6px;margin-bottom:3px}
 		.loader{text-align:center;color:var(--text-muted);padding:50px}
 		#custom-tooltip{position:fixed;background:#18191c;color:#dcddde;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;pointer-events:none;z-index:9999;opacity:0;visibility:hidden;box-shadow:0 4px 8px rgba(0,0,0,.3);white-space:nowrap;transition:opacity .1s ease}
@@ -41,9 +42,18 @@
 			g.style.gridTemplateColumns = `repeat(auto-fit, minmax(min(100%, 300px), 1fr))`;
 			if (window.innerWidth > 768) g.style.gridTemplateColumns = `repeat(3, 1fr)`;
 			
-			document.addEventListener('mouseover', e => { if (e.target.classList.contains('live-time') && e.target.dataset.full) { tt.innerText = e.target.dataset.full; tt.classList.add('show'); }});
+			document.addEventListener('mouseover', e => {
+				const energyEl = e.target.closest('.energy-hover');
+				if (energyEl && energyEl.dataset.energyTs) {
+					tt.innerText = `Next energy: ${Utils.formatRelativeTime(parseInt(energyEl.dataset.energyTs))}`;
+					tt.classList.add('show');
+				} else if (e.target.classList.contains('live-time') && e.target.dataset.full) {
+					tt.innerText = e.target.dataset.full;
+					tt.classList.add('show');
+				}
+			});
 			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { tt.style.left = (e.clientX + 15) + 'px'; tt.style.top = (e.clientY + 15) + 'px'; }});
-			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time')) tt.classList.remove('show'); });
+			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover')) tt.classList.remove('show'); });
 			
 			google.script.run.withSuccessHandler(renderData).getWebData();
 		};
@@ -56,7 +66,7 @@
 		
 		function renderData(data) {
 			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium', hour12: true })}`;
-			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid');
+			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid'), updateTime = new Date(data.updatedAt).getTime();
 			
 			if (data.serverReset) {
 				const fR = ts => ts ? `<span class="live-time" data-ts="${ts * 1000}"></span>` : `-`;
@@ -73,9 +83,9 @@
 					dl.forEach(d => {
 						const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length; aS += cur; aM += max;
 						const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
-						aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? 'Fulled' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
+						aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span style="color: #fff;">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
 					});
-					sH = `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">🔑 Login: <span class="live-time" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${c.dailyMission.dailyActivation}/${c.dailyMission.maxDailyActivation}<br>📅 Weekly: ${c.weeklyMission.score}/${c.weeklyMission.total}<br>🌟 BP: ${c.bpSystem.curLevel}/${c.bpSystem.maxLevel}<br>⚡️ Energy: ${en}/${em}<br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: ` + (en >= v ? `Fulled` : `<span class="live-time" data-ts="${Utils.getEnergyTs(en, v) * 1e3}"></span>`)).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}</div></div>`;
+					sH = `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">🔑 Login: <span class="live-time" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${c.dailyMission.dailyActivation}/${c.dailyMission.maxDailyActivation}<br>📅 Weekly: ${c.weeklyMission.score}/${c.weeklyMission.total}<br>🌟 BP: ${c.bpSystem.curLevel}/${c.bpSystem.maxLevel}<br><span class="energy-hover" data-initial-energy="${en}" data-max-energy="${em}" data-update-time="${updateTime}">⚡️ Energy: <span class="live-energy">${en}</span>/<span style="color:#fff">${em}</span></span><br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: <span class="energy-milestone" data-target="${v}">` + (en >= v ? `<span style="color: #fff;">Fulled</span>` : `<span class="live-time" data-ts="${Utils.getEnergyTs(en, v, 432e3) * 1e3}"></span>`) + `</span>`).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}</div></div>`;
 				}
 				return `<div class="card ${a.success ? 'success' : 'error'}"><div class="card-header">${aU ? `<img src="${aU}" class="avatar-img" referrerpolicy="no-referrer">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`} ${a.nickname} (${a.serverName})</div><div><div class="section-title">Status</div><div class="content-box">${a.status}</div></div><div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>${sH}</div>`;
 			}).join('');
@@ -83,7 +93,32 @@
 			if (liveTimer) clearInterval(liveTimer); updateTimestamps(); liveTimer = setInterval(updateTimestamps, 1000);
 		}
 		
-		const updateTimestamps = () => document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) { el.innerText = Utils.formatRelativeTime(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true }); } });
+		const updateTimestamps = () => {
+			const now = Date.now();
+			document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) { el.innerText = Utils.formatRelativeTime(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true }); } });
+			document.querySelectorAll('.energy-hover').forEach(el => {
+				const initialEn = parseInt(el.dataset.initialEnergy), maxEn = parseInt(el.dataset.maxEnergy), updateTime = parseInt(el.dataset.updateTime);
+				const elapsed = Math.max(0, now - updateTime);
+				const currentEn = Math.min(maxEn, initialEn + Math.floor(elapsed / 432e3));
+				const eEl = el.querySelector('.live-energy'); if (eEl) eEl.innerText = currentEn;
+				
+				if (currentEn >= maxEn) {
+					el.removeAttribute('data-energy-ts');
+				} else {
+					const nextTs = updateTime + (currentEn - initialEn + 1) * 432e3;
+					el.setAttribute('data-energy-ts', nextTs);
+				}
+				
+				const box = el.closest('.stats-box');
+				if (box) {
+					box.querySelectorAll('.energy-milestone').forEach(mEl => {
+						const target = parseInt(mEl.dataset.target);
+						if (currentEn >= target) mEl.innerHTML = `<span style="color: #fff;">Fulled</span>`;
+						else if (!mEl.querySelector('.live-time')) mEl.innerHTML = `<span class="live-time" data-ts="${Utils.getEnergyTs(currentEn, target, 432e3) * 1e3}"></span>`;
+					});
+				}
+			});
+		};
 	</script>
 </body>
 </html>
