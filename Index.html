@@ -45,7 +45,7 @@
 				if (energyEl && energyEl.dataset.energyTs) { tt.innerText = `Next energy: ${Utils.formatRelativeTime(parseInt(energyEl.dataset.energyTs))}`; tt.classList.add('show'); }
 				else if (e.target.classList.contains('live-time') && e.target.dataset.full) { tt.innerText = e.target.dataset.full; tt.classList.add('show'); }
 			});
-			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { tt.style.left = (e.clientX + 15) + 'px'; tt.style.top = (e.clientY + 15) + 'px'; }});
+			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { let x = e.clientX + 15, y = e.clientY + 15; if (x + tt.offsetWidth > window.innerWidth) x = e.clientX - tt.offsetWidth - 10; if (y + tt.offsetHeight > window.innerHeight) y = e.clientY - tt.offsetHeight - 10; tt.style.left = x + 'px'; tt.style.top = y + 'px'; }});
 			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover')) tt.classList.remove('show'); });
 			google.script.run.withSuccessHandler(renderData).getWebData();
 		};
