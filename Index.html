@@ -55,7 +55,7 @@
 			formatRelativeTime: (t) => { const d = (t - Date.now()) / 1e3, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`; return a < 60 ? f(a|0, "sec") : a < 3600 ? f((a/60)|0, "min") : a < 864e2 ? f((a/3600)|0, "hour") : f((a/864e2)|0, "day"); }
 		};
 		function renderData(data) {
-			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium', hour12: true })}`;
+			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true })}`;
 			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid'), uT = new Date(data.updatedAt).getTime();
 			if (data.serverReset) {
 				const fR = ts => ts ? `<span class="live-time" data-ts="${ts * 1000}"></span>` : `-`;
