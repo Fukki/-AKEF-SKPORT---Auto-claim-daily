@@ -239,86 +239,46 @@ const buildPlayerCard = (p, b = false) => {
 };
 
 function doGet(e) {
-	return HtmlService.createHtmlOutputFromFile('Index')
-		.setTitle('Endfield - Dashboard')
-		.addMetaTag('viewport', 'width=device-width, initial-scale=1')
-		.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+	return HtmlService.createHtmlOutputFromFile('Index').setTitle('Endfield - Dashboard').addMetaTag('viewport', 'width=device-width, initial-scale=1').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function getWebData() {
-	const s = PropertiesService.getScriptProperties();
-	const m = JSON.parse(s.getProperty('web_meta') || 'null');
+	const s = PropertiesService.getScriptProperties(), m = JSON.parse(s.getProperty('web_meta') || 'null');
 	return m ? JSON.parse(Array.from({length: m.chunks}, (_, i) => s.getProperty('web_chunk_' + i)).join('')) : { updatedAt: Date.now(), accounts: [] };
 }
 
 function getNextResetTimestamps(st) {
-	const now = new Date();
+	const now = new Date(), nowMs = now.getTime();
+	const setT = (d, t) => { const [h, m, s] = t.split(':').map(Number); d.setHours(h, m, s, 0); return d; };
+	const ts = (d) => Math.floor(d.getTime() / 1000);
 	
-	const parseTime = (t) => t.split(':').map(Number);
-	
-	const getNextTimeToday = (timeStr) => {
-		const [h, m, s] = parseTime(timeStr);
-		const target = new Date(now);
-		target.setHours(h, m, s, 0);
-		if (target <= now) target.setDate(target.getDate() + 1);
-		return Math.floor(target.getTime() / 1000);
-	};
-	
-	const getNextDayOfWeek = (dow, timeStr) => {
-		const [h, m, s] = parseTime(timeStr);
-		const target = new Date(now);
-		target.setHours(h, m, s, 0);
-		let diff = dow - target.getDay();
-		if (diff < 0 || (diff === 0 && target <= now)) diff += 7;
-		target.setDate(target.getDate() + diff);
-		return Math.floor(target.getTime() / 1000);
+	const nTd = (t, d = setT(new Date(now), t)) => { if (d <= now) d.setDate(d.getDate() + 1); return ts(d); };
+	const nDoW = (dow, t, d = setT(new Date(now), t)) => { let df = dow - d.getDay(); if (df < 0 || (df === 0 && d <= now)) df += 7; d.setDate(d.getDate() + df); return ts(d); };
+	const nBp = (sStr, [cDays, t]) => {
+		const sMs = new Date(sStr).getTime(), cMs = cDays * 864e5;
+		if (nowMs < sMs) return Math.floor(sMs / 1000);
+		const d = setT(new Date(sMs + (Math.floor((nowMs - sMs) / cMs) + 1) * cMs), t);
+		if (d.getTime() <= nowMs) d.setTime(d.getTime() + cMs);
+		return ts(d);
 	};
 
-	const getNextBpReset = (startStr, [cycleDays, timeStr]) => {
-		const [h, m, s] = parseTime(timeStr);
-		const startMs = new Date(startStr).getTime();
-		const cycleMs = cycleDays * 86400000;
-		const nowMs = now.getTime();
-		if (nowMs < startMs) return Math.floor(startMs / 1000);
-		const cycleIndex = Math.floor((nowMs - startMs) / cycleMs);
-		const target = new Date(startMs + (cycleIndex + 1) * cycleMs);
-		target.setHours(h, m, s, 0);
-		if (target.getTime() <= nowMs) target.setTime(target.getTime() + cycleMs);
-		return Math.floor(target.getTime() / 1000);
-	};
-
-	return {
-		daily: getNextTimeToday(st.serverDailyReset),
-		weekly: getNextDayOfWeek(st.serverWeelyReset[0], st.serverWeelyReset[1]),
-		arsenal: getNextDayOfWeek(st.serverArsenalReset[0], st.serverArsenalReset[1]),
-		bp: getNextBpReset(st.serverBPCycleStart, st.serverBPCycleEnd)
-	};
+	return { daily: nTd(st.serverDailyReset), weekly: nDoW(st.serverWeelyReset[0], st.serverWeelyReset[1]), arsenal: nDoW(st.serverArsenalReset[0], st.serverArsenalReset[1]), bp: nBp(st.serverBPCycleStart, st.serverBPCycleEnd) };
 }
 
-function saveWebData(results) {
-	const s = PropertiesService.getScriptProperties();
+function saveWebData(res) {
+	const s = PropertiesService.getScriptProperties(), u = Date.now();
 	const d = JSON.stringify({
-		updatedAt: Date.now(),
-		serverReset: getNextResetTimestamps(Settings),
-		accounts: results.map(({nickname, serverName, success, status, msg, itemIcon_url, playerCard: p}) => ({
-			nickname, serverName, success, status, msg, itemIcon_url,
-			playerCard: p?.base ? {
-				base: { lastLoginTime: p.base.lastLoginTime, avatarUrl: p.base.avatarUrl },
-				dungeon: { curStamina: p.dungeon.curStamina, maxStamina: p.dungeon.maxStamina },
-				bpSystem: { curLevel: p.bpSystem.curLevel, maxLevel: p.bpSystem.maxLevel },
-				dailyMission: { dailyActivation: p.dailyMission.dailyActivation, maxDailyActivation: p.dailyMission.maxDailyActivation },
-				weeklyMission: { score: p.weeklyMission.score, total: p.weeklyMission.total },
-				domain: (p.domain || []).map(d => ({ name: d.name, settlements: (d.settlements || []).filter(x => +x.level > 0).map(({level, remainMoney, moneyMax}) => ({level, remainMoney, moneyMax})) }))
-			} : null
+		updatedAt: u, serverReset: getNextResetTimestamps(Settings),
+		accounts: res.map(({nickname:n, serverName:sn, success:sc, status:st, msg:m, itemIcon_url:i, playerCard:p}) => ({
+			nickname:n, serverName:sn, success:sc, status:st, msg:m, itemIcon_url:i,
+			playerCard: p?.base ? { base: { lastLoginTime: p.base.lastLoginTime, avatarUrl: p.base.avatarUrl }, dungeon: { curStamina: p.dungeon.curStamina, maxStamina: p.dungeon.maxStamina }, bpSystem: { curLevel: p.bpSystem.curLevel, maxLevel: p.bpSystem.maxLevel }, dailyMission: { dailyActivation: p.dailyMission.dailyActivation, maxDailyActivation: p.dailyMission.maxDailyActivation }, weeklyMission: { score: p.weeklyMission.score, total: p.weeklyMission.total }, domain: (p.domain || []).map(d => ({ name: d.name, settlements: (d.settlements || []).filter(x => +x.level > 0).map(({level, remainMoney, moneyMax}) => ({level, remainMoney, moneyMax})) })) } : null
 		}))
 	});
 	
-	const chunks = Math.ceil(d.length / 8000);
-	Object.keys(s.getProperties()).forEach(k => (k.startsWith('web_chunk_') || k === 'web_display_data') && s.deleteProperty(k));
-	s.setProperty('web_meta', JSON.stringify({ chunks, updatedAt: Date.now() }));
-	for (let i = 0; i < chunks; i++) {
-		s.setProperty('web_chunk_' + i, d.substring(i * 8000, i * 8000 + 8000));
-	}
+	const c = Math.ceil(d.length / 8000);
+	s.getKeys().forEach(k => (k.startsWith('web_chunk_') || k === 'web_display_data') && s.deleteProperty(k));
+	s.setProperty('web_meta', JSON.stringify({ chunks: c, updatedAt: u }));
+	for (let i = 0; i < c; i++) s.setProperty('web_chunk_' + i, d.substring(i * 8000, i * 8000 + 8000));
 }
 
 const readMeta = r => ({ resp: r, json: parseJson(r?.getContentText() || ""), code: r?.getResponseCode() ?? null, rawText: r?.getContentText() || "" });
