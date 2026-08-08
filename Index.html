@@ -34,7 +34,7 @@
 				let b = el.closest('.stats-box');
 				if (b) b.querySelectorAll('.energy-milestone').forEach(m => { let t = +m.dataset.target, sp = m.querySelector('.live-time'), ts = U.gET(cE, t); cE >= t ? m.innerHTML = `Fulled` : (sp ? sp.setAttribute('data-ts', ts) : m.innerHTML = `<span class="live-time" data-ts="${ts}"></span>`) });
 			});
-			document.querySelectorAll('.live-time').forEach(el => { let t = +el.getAttribute('data-ts'); if (t) { el.innerText = U.fRT(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium',hour12:true}) }});
+			document.querySelectorAll('.live-time').forEach(el => { let t = +el.getAttribute('data-ts'); if (t) { el.innerText = U.fRT(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US',{dateStyle:'full',timeStyle:'short',hour12:true}) }});
 		};
 		const rD = d => {
 			document.getElementById('last-update').innerText = `Last Update: ${new Date(d.updatedAt).toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium',hour12:true})}`;
