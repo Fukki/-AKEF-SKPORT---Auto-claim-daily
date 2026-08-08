@@ -4,90 +4,57 @@
 	<base target="_top">
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 	<style>
-		:root{--bg-color:#36393f;--card-bg:#2f3136;--text-main:#dcddde;--text-muted:#8e9297;--discord-embed:#202225}
-		body{font-family:'Inter',sans-serif;background-color:var(--bg-color);color:var(--text-main);margin:0;padding:20px}
-		.header{text-align:center;margin-bottom:20px}.header h1{margin:0;font-size:24px;color:#fff}.header p{margin:5px 0 0;color:var(--text-muted);font-size:14px}
-		.global-reset-box{max-width:900px;margin:16px auto 0;background:var(--card-bg);border-radius:8px;padding:16px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1);text-align:left}
-		.global-reset-header{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
-		.global-reset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-family:monospace;font-size:13px;color:#a3a6aa;text-align:center}
-		@media(max-width:768px){.global-reset-grid{grid-template-columns:repeat(2,1fr)}}
-		#dashboard-grid{display:grid;gap:15px}
-		.card{background:var(--card-bg);border-radius:8px;border-left:4px solid var(--discord-embed);padding:16px;box-shadow:0 4px 6px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:12px}
-		.card.success{border-left-color:#43b581}.card.error{border-left-color:#f04747}
-		.card-header{font-weight:700;font-size:18px;color:#fff;display:flex;align-items:center;gap:10px}
-		.avatar-img{width:32px;height:32px;border-radius:6px;object-fit:cover;background:#202225}
-		.section-title{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
-		.content-box{font-size:14px;line-height:1.6;background:var(--bg-color);padding:8px 12px;border-radius:4px}
-		.stats-box{font-size:13px;font-family:monospace;color:#a3a6aa;white-space:nowrap}
-		.live-time,.live-energy{color:#fff}
-		.live-time,.energy-hover{cursor:pointer}
-		.inline-icon{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:6px;margin-bottom:3px}
-		.loader{text-align:center;color:var(--text-muted);padding:50px}
-		#custom-tooltip{position:fixed;background:#18191c;color:#dcddde;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;pointer-events:none;z-index:9999;opacity:0;visibility:hidden;box-shadow:0 4px 8px rgba(0,0,0,.3);max-width:90vw;white-space:normal;word-break:break-word;transition:opacity .1s ease}
-		#custom-tooltip.show{opacity:1;visibility:visible}
+		:root{--bg-color:#36393f;--card-bg:#2f3136;--text-main:#dcddde;--text-muted:#8e9297;--discord-embed:#202225}body{font-family:'Inter',sans-serif;background-color:var(--bg-color);color:var(--text-main);margin:0;padding:20px}.header{text-align:center;margin-bottom:20px}.header h1{margin:0;font-size:24px;color:#fff}.header p{margin:5px 0 0;color:var(--text-muted);font-size:14px}.global-reset-box{max-width:900px;margin:16px auto 0;background:var(--card-bg);border-radius:8px;padding:16px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1);text-align:left}.global-reset-header{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}.global-reset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-family:monospace;font-size:13px;color:#a3a6aa;text-align:center}@media(max-width:768px){.global-reset-grid{grid-template-columns:repeat(2,1fr)}}#dashboard-grid{display:grid;gap:15px}.card{background:var(--card-bg);border-radius:8px;border-left:4px solid var(--discord-embed);padding:16px;box-shadow:0 4px 6px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:12px}.card.success{border-left-color:#43b581}.card.error{border-left-color:#f04747}.card-header{font-weight:700;font-size:18px;color:#fff;display:flex;align-items:center;gap:10px}.avatar-img{width:32px;height:32px;border-radius:6px;object-fit:cover;background:#202225}.section-title{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}.content-box{font-size:14px;line-height:1.6;background:var(--bg-color);padding:8px 12px;border-radius:4px}.stats-box{font-size:13px;font-family:monospace;color:#a3a6aa;white-space:nowrap}.live-time,.live-energy{color:#fff}.live-time,.energy-hover{cursor:pointer}.inline-icon{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:6px;margin-bottom:3px}.loader{text-align:center;color:var(--text-muted);padding:50px}#custom-tooltip{position:fixed;background:#18191c;color:#dcddde;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;pointer-events:none;z-index:9999;opacity:0;visibility:hidden;box-shadow:0 4px 8px rgba(0,0,0,.3);max-width:90vw;white-space:normal;word-break:break-word;transition:opacity .1s ease}#custom-tooltip.show{opacity:1;visibility:visible}
 	</style>
 </head>
 <body>
-	<div class="header">
-		<h1>📝 Endfield - Report Dashboard</h1>
-		<p id="last-update">Loading...</p>
-		<div id="global-reset" class="global-reset-box" style="display:none;"></div>
-	</div>
+	<div class="header"><h1>📝 Endfield - Report Dashboard</h1><p id="last-update">Loading...</p><div id="global-reset" class="global-reset-box" style="display:none"></div></div>
 	<div id="dashboard-grid"><div class="loader">Fetching data from server...</div></div>
 	<div id="custom-tooltip"></div>
 	<script>
-		let liveTimer;
+		let tmr, U = {
+			gET: (c, m, s = 432e3) => Math.floor(c >= m ? Date.now() : Math.ceil(Date.now()/s)*s + (m-c-1)*s),
+			shn: (n, d = 2) => { let u = 0, x = +n; while (x >= 1e3 && u < 3) x /= 1e3, u++; return (x%1==0?x:x.toFixed(d).replace(/\.?0+$/,""))+["","k","m","b"][u] },
+			fRT: t => { let d = (t - Date.now())/1e3, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n>1?"s":""}` : `${n} ${u}${n>1?"s":""} ago`; return a < 60 ? f(a|0,"sec") : a < 3600 ? f(a/60|0,"min") : a < 864e2 ? f(a/3600|0,"hour") : f(a/864e2|0,"day") }
+		};
 		window.onload = () => {
-			const g = document.getElementById('dashboard-grid'), tt = document.getElementById('custom-tooltip');
+			let g = document.getElementById('dashboard-grid'), tt = document.getElementById('custom-tooltip');
 			g.style.gridTemplateColumns = window.innerWidth > 768 ? `repeat(3, 1fr)` : `repeat(auto-fit, minmax(min(100%, 300px), 1fr))`;
-			document.addEventListener('mouseover', e => {
-				const energyEl = e.target.closest('.energy-hover');
-				if (energyEl && energyEl.dataset.energyTs) { tt.innerText = `Next energy: ${Utils.formatRelativeTime(parseInt(energyEl.dataset.energyTs))}`; tt.classList.add('show'); }
-				else if (e.target.classList.contains('live-time') && e.target.dataset.full) { tt.innerText = e.target.dataset.full; tt.classList.add('show'); }
-			});
-			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { let x = e.clientX + 15, y = e.clientY + 15; if (x + tt.offsetWidth > window.innerWidth) x = Math.max(5, e.clientX - tt.offsetWidth - 10); if (y + tt.offsetHeight > window.innerHeight) y = Math.max(5, e.clientY - tt.offsetHeight - 10); tt.style.left = x + 'px'; tt.style.top = y + 'px'; }});
-			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover')) tt.classList.remove('show'); });
-			google.script.run.withSuccessHandler(renderData).getWebData();
+			document.addEventListener('mouseover', e => { let E = e.target.closest('.energy-hover'), T = e.target; if (E?.dataset.ets) { tt.innerText = `Next energy: ${U.fRT(+E.dataset.ets)}`; tt.classList.add('show') } else if (T.classList.contains('live-time') && T.dataset.full) { tt.innerText = T.dataset.full; tt.classList.add('show') }});
+			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { let x = e.clientX+15, y = e.clientY+15; tt.style.left = (x+tt.offsetWidth>window.innerWidth?Math.max(5,e.clientX-tt.offsetWidth-10):x)+'px'; tt.style.top = (y+tt.offsetHeight>window.innerHeight?Math.max(5,e.clientY-tt.offsetHeight-10):y)+'px' }});
+			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover')) tt.classList.remove('show') });
+			google.script.run.withSuccessHandler(rD).getWebData();
 		};
-		const Utils = {
-			getEnergyTs: (i, t, u, s = 432e3) => Math.floor(i >= t ? Date.now() : u + (t - i) * s),
-			shn: (n, d = 2) => { let u = 0, x = +n, un = ["", "k", "m", "b"]; while (x >= 1e3 && u < 3) { x /= 1e3; u++; } return (Number.isInteger(x) ? x.toString() : x.toFixed(d).replace(/\.?0+$/, "")) + un[u]; },
-			formatRelativeTime: (t) => { const d = (t - Date.now()) / 1e3, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`; return a < 60 ? f(a|0, "sec") : a < 3600 ? f((a/60)|0, "min") : a < 864e2 ? f((a/3600)|0, "hour") : f((a/864e2)|0, "day"); }
-		};
-		function renderData(data) {
-			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true })}`;
-			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid'), uT = new Date(data.updatedAt).getTime();
-			if (data.serverReset) {
-				const fR = ts => ts ? `<span class="live-time" data-ts="${ts * 1000}"></span>` : `-`;
-				rEl.style.display = 'block'; rEl.innerHTML = `<div class="global-reset-header">Server Reset</div><div class="global-reset-grid"><div>🌸 Daily: ${fR(data.serverReset.daily)}</div><div>📅 Weekly: ${fR(data.serverReset.weekly)}</div><div>🗡️ Arsenal: ${fR(data.serverReset.arsenal)}</div><div>🌟 BP: ${fR(data.serverReset.bp)}</div></div>`;
-			} else rEl.style.display = 'none';
-			if (!data.accounts?.length) return g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
-			g.innerHTML = data.accounts.map(a => {
-				const c = a.playerCard, bs = c?.base, aU = bs?.avatarUrl, rH = a.itemIcon_url?.length ? a.msg.split('\n').map((l, i) => a.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${a.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer"> `) : l).join('<br>') : a.msg.replace(/\n/g, '<br>');
-				let sH = "";
-				if (bs) {
-					const dl = c.domain, dg = c.dungeon, en = +dg.curStamina, em = +dg.maxStamina; let aS = 0, aM = 0, aStr = "";
-					dl.forEach(d => {
-						const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length; aS += cur; aM += max;
-						const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
-						aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span style="color: #fff;">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
-					});
-					sH = `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">🔑 Login: <span class="live-time" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${c.dailyMission.dailyActivation}/${c.dailyMission.maxDailyActivation}<br>📅 Weekly: ${c.weeklyMission.score}/${c.weeklyMission.total}<br>🌟 BP: ${c.bpSystem.curLevel}/${c.bpSystem.maxLevel}<br><span class="energy-hover" data-initial-energy="${en}" data-max-energy="${em}" data-update-time="${uT}">⚡️ Energy: <span class="live-energy">${en}</span>/<span style="color:#fff">${em}</span></span><br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: <span class="energy-milestone" data-target="${v}">` + (en >= v ? `<span style="color: #fff;">Fulled</span>` : `<span class="live-time" data-ts="${Utils.getEnergyTs(en, v, uT)}"></span>`) + `</span>`).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}</div></div>`;
-				}
-				return `<div class="card ${a.success ? 'success' : 'error'}"><div class="card-header">${aU ? `<img src="${aU}" class="avatar-img" referrerpolicy="no-referrer">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`} ${a.nickname} (${a.serverName})</div><div><div class="section-title">Status</div><div class="content-box">${a.status}</div></div><div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>${sH}</div>`;
-			}).join('');
-			if (liveTimer) clearInterval(liveTimer); updateTimestamps(); liveTimer = setInterval(updateTimestamps, 1000);
-		}
-		const updateTimestamps = () => {
-			const now = Date.now();
-			document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) { el.innerText = Utils.formatRelativeTime(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true }); }});
+		const uT_fn = () => {
+			let n = Date.now();
 			document.querySelectorAll('.energy-hover').forEach(el => {
-				const iEn = parseInt(el.dataset.initialEnergy), mEn = parseInt(el.dataset.maxEnergy), uT = parseInt(el.dataset.updateTime), cEn = Math.min(mEn, iEn + Math.floor(Math.max(0, now - uT) / 432e3));
-				const eEl = el.querySelector('.live-energy'); if (eEl) eEl.innerText = cEn;
-				if (cEn >= mEn) el.removeAttribute('data-energy-ts'); else el.setAttribute('data-energy-ts', uT + (cEn - iEn + 1) * 432e3);
-				const box = el.closest('.stats-box');
-				if (box) { box.querySelectorAll('.energy-milestone').forEach(mEl => { const t = parseInt(mEl.dataset.target); if (cEn >= t) mEl.innerHTML = `<span style="color: #fff;">Fulled</span>`; else if (!mEl.querySelector('.live-time')) mEl.innerHTML = `<span class="live-time" data-ts="${Utils.getEnergyTs(iEn, t, uT)}"></span>`; }); }
+				let iE = +el.dataset.ie||0, mE = +el.dataset.me||0, uT = +el.dataset.ut||n, cE = Math.min(mE, iE + Math.floor(n/432e3) - Math.floor(uT/432e3)), eE = el.querySelector('.live-energy');
+				if (eE) eE.innerText = cE;
+				cE >= mE ? el.removeAttribute('data-ets') : el.setAttribute('data-ets', U.gET(cE, cE + 1));
+				let b = el.closest('.stats-box');
+				if (b) b.querySelectorAll('.energy-milestone').forEach(m => { let t = +m.dataset.target, sp = m.querySelector('.live-time'), ts = U.gET(cE, t); cE >= t ? m.innerHTML = `Fulled` : (sp ? sp.setAttribute('data-ts', ts) : m.innerHTML = `<span class="live-time" data-ts="${ts}"></span>`) });
 			});
+			document.querySelectorAll('.live-time').forEach(el => { let t = +el.getAttribute('data-ts'); if (t) { el.innerText = U.fRT(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium',hour12:true}) }});
+		};
+		const rD = d => {
+			document.getElementById('last-update').innerText = `Last Update: ${new Date(d.updatedAt).toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium',hour12:true})}`;
+			let r = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid'), uT = new Date(d.updatedAt).getTime(), fR = t => t ? `<span class="live-time" data-ts="${t*1e3}"></span>` : `-`;
+			if (d.serverReset) { r.style.display = 'block'; r.innerHTML = `<div class="global-reset-header">Server Reset</div><div class="global-reset-grid"><div>🌸 Daily: ${fR(d.serverReset.daily)}</div><div>📅 Weekly: ${fR(d.serverReset.weekly)}</div><div>🗡️ Arsenal: ${fR(d.serverReset.arsenal)}</div><div>🌟 BP: ${fR(d.serverReset.bp)}</div></div>` } else r.style.display = 'none';
+			if (!d.accounts?.length) return g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
+			g.innerHTML = d.accounts.map(a => {
+				let c = a.playerCard, bs = c?.base, aU = bs?.avatarUrl, rH = a.itemIcon_url?.length ? a.msg.split('\n').map((l,i) => a.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${a.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer"> `) : l).join('<br>') : a.msg.replace(/\n/g, '<br>'), sH = "";
+				if (bs) {
+					let dl = c.domain, dg = c.dungeon, en = +dg.curStamina, em = +dg.maxStamina, aS = 0, aM = 0, aStr = "";
+					dl.forEach(x => {
+						let s = x.settlements.filter(y => +y.level>0), cur = s.reduce((v,y)=>v + +y.remainMoney, 0), max = s.reduce((v,y)=>v + +y.moneyMax, 0), fd = s.filter(y => +y.remainMoney === +y.moneyMax).length; aS += cur; aM += max;
+						let rL = s.map((y,i) => `&emsp;&emsp;[${i+1}]: ${U.shn(y.remainMoney)}/${U.shn(y.moneyMax)}`).join("<br>");
+						aStr += `<br>&emsp;→ ${x.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? 'Fulled' : (max?((cur/max)*100).toFixed(2):"0.00")+'%'}${rL ? `<br>${rL}` : ""}`;
+					});
+					sH = `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">🔑 Login: <span class="live-time" data-ts="${bs.lastLoginTime*1e3}"></span><br>🌸 Daily: ${c.dailyMission.dailyActivation}/${c.dailyMission.maxDailyActivation}<br>📅 Weekly: ${c.weeklyMission.score}/${c.weeklyMission.total}<br>🌟 BP: ${c.bpSystem.curLevel}/${c.bpSystem.maxLevel}<br>⚡️ Energy: <span class="energy-hover" data-ie="${en}" data-me="${em}" data-ut="${uT}"><span class="live-energy">${en}</span>/<span style="color:#fff">${em}</span></span><br>${[160,200,240,em].map(v => `&emsp;→ ${v}: <span class="energy-milestone" data-target="${v}">` + (en >= v ? `Fulled` : `<span class="live-time" data-ts="${U.gET(en, v)}"></span>`) + `</span>`).join('<br>')}<br>🏠 AIC Funds: ${aM?((aS/aM)*100).toFixed(2):"0.00"}%${aStr}</div></div>`;
+				}
+				return `<div class="card ${a.success?'success':'error'}"><div class="card-header">${aU?`<img src="${aU}" class="avatar-img" referrerpolicy="no-referrer">`:`<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>`} ${a.nickname} (${a.serverName})</div><div><div class="section-title">Status</div><div class="content-box">${a.status}</div></div><div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>${sH}</div>`;
+			}).join('');
+			if (tmr) clearInterval(tmr); uT_fn(); tmr = setInterval(uT_fn, 1000);
 		};
 	</script>
 </body>
