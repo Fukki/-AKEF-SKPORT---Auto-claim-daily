@@ -24,8 +24,6 @@ const Settings = {
 	serverArsenalReset: [4, "11:00:00"], //format [MDay, HH:MM:SS] *MDay start 0 = sunday ~~ 6 = saturday
 	serverBPCycleStart: "2026-07-16 11:00:00", //format "YYYY-MM-DD HH:MM:SS"
 	serverBPCycleEnd: [48, "05:00:00"], //format [Cycle, HH:MM:SS] *Cycle = number of days (normally 35, 42, 49 days)
-	reward_db: "reward_db", //PropertiesService *just name
-	discord_db: "discord_db", //can be checked in Project Settings > Script Properties
 	discordColumn: 2, //max 3 col in 1 row
 	discordUseEdit: true, //update with edit post
 	discordDailyPost: true, //new post everyday follow discordResetTime
@@ -114,7 +112,7 @@ function main() {
 }
 
 function formatResult(p, meta, i) {
-	const store = PropertiesService.getScriptProperties(), key = Settings.reward_db;
+	const store = PropertiesService.getScriptProperties(), key = "reward_db";
 	let db = JSON.parse(store.getProperty(key) || '{"date":"","items":{},"accounts":{}}');
 	const checkReset = checkDailyReset(db.date, Settings.rewardResetTime || "00:00:00");
 	if (checkReset.isReset) store.setProperty(key, JSON.stringify(db = { date: checkReset.date, items: {}, accounts: {} }));
@@ -138,7 +136,7 @@ function formatResult(p, meta, i) {
 }
 
 function discordPost(rows, colCount = Settings.discordColumn || 2, useEdit = Settings.discordUseEdit || false) {
-	const store = PropertiesService.getScriptProperties(), key = Settings.discord_db;
+	const store = PropertiesService.getScriptProperties(), key = "discord_db";
 	const hooks = discordApp.filter(o => o.notify && o.discordWebhook);
 	const k = u => Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u).map(b => (b + 256).toString(16).slice(-2)).join("");
 	
