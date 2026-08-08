@@ -4,27 +4,27 @@
 	<base target="_top">
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 	<style>
-		:root { --bg-color: #36393f; --card-bg: #2f3136; --text-main: #dcddde; --text-muted: #8e9297; --border: #202225; --success: #43b581; --error: #f04747; --discord-embed: #202225; }
-		body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
-		.header { text-align: center; margin-bottom: 20px; }
-		.header h1 { margin: 0; font-size: 24px; color: #fff; }
-		.header p { margin: 5px 0 0; color: var(--text-muted); font-size: 14px; }
-		.global-reset-box { max-width: 900px; margin: 16px auto 0; background-color: var(--card-bg); border-radius: 8px; padding: 16px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: left; }
-		.global-reset-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
-		.global-reset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-family: monospace; font-size: 13px; color: #a3a6aa; text-align: center; }
-		@media(max-width: 768px) { .global-reset-grid { grid-template-columns: repeat(2, 1fr); } }
-		#dashboard-grid { display: grid; gap: 15px; }
-		.card { background-color: var(--card-bg); border-radius: 8px; border-left: 4px solid var(--discord-embed); padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 12px; }
-		.card.success { border-left-color: var(--success); }
-		.card.error { border-left-color: var(--error); }
-		.card-header { font-weight: 700; font-size: 18px; color: #fff; display: flex; align-items: center; gap: 10px; }
-		.avatar-img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; background: #202225; }
-		.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
-		.content-box { font-size: 14px; line-height: 1.6; background: var(--bg-color); padding: 8px 12px; border-radius: 4px; }
-		.stats-box { font-size: 13px; font-family: monospace; color: #a3a6aa; white-space: nowrap; }
-		.timestamp { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; color: #fff; cursor: help; border-bottom: 1px dotted rgba(255,255,255,0.3); }
-		.inline-icon { width: 20px; height: 20px; border-radius: 4px; vertical-align: middle; margin-right: 6px; margin-bottom: 3px; }
-		.loader { text-align: center; color: var(--text-muted); padding: 50px; }
+		:root{--bg-color:#36393f;--card-bg:#2f3136;--text-main:#dcddde;--text-muted:#8e9297;--discord-embed:#202225}
+		body{font-family:'Inter',sans-serif;background-color:var(--bg-color);color:var(--text-main);margin:0;padding:20px}
+		.header{text-align:center;margin-bottom:20px}.header h1{margin:0;font-size:24px;color:#fff}.header p{margin:5px 0 0;color:var(--text-muted);font-size:14px}
+		.global-reset-box{max-width:900px;margin:16px auto 0;background:var(--card-bg);border-radius:8px;padding:16px 20px;box-shadow:0 4px 6px rgba(0,0,0,.1);text-align:left}
+		.global-reset-header{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
+		.global-reset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-family:monospace;font-size:13px;color:#a3a6aa;text-align:center}
+		@media(max-width:768px){.global-reset-grid{grid-template-columns:repeat(2,1fr)}}
+		#dashboard-grid{display:grid;gap:15px}
+		.card{background:var(--card-bg);border-radius:8px;border-left:4px solid var(--discord-embed);padding:16px;box-shadow:0 4px 6px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:12px}
+		.card.success{border-left-color:#43b581}.card.error{border-left-color:#f04747}
+		.card-header{font-weight:700;font-size:18px;color:#fff;display:flex;align-items:center;gap:10px}
+		.avatar-img{width:32px;height:32px;border-radius:6px;object-fit:cover;background:#202225}
+		.section-title{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
+		.content-box{font-size:14px;line-height:1.6;background:var(--bg-color);padding:8px 12px;border-radius:4px}
+		.stats-box{font-size:13px;font-family:monospace;color:#a3a6aa;white-space:nowrap}
+		.timestamp{background:rgba(255,255,255,.1);padding:2px 4px;border-radius:3px;color:#fff;border-bottom:1px dotted rgba(255,255,255,.3)}
+		.live-time{cursor:pointer}
+		.inline-icon{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:6px;margin-bottom:3px}
+		.loader{text-align:center;color:var(--text-muted);padding:50px}
+		#custom-tooltip{position:fixed;background:#18191c;color:#dcddde;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;pointer-events:none;z-index:9999;opacity:0;visibility:hidden;box-shadow:0 4px 8px rgba(0,0,0,.3);white-space:nowrap;transition:opacity .1s ease}
+		#custom-tooltip.show{opacity:1;visibility:visible}
 	</style>
 </head>
 <body>
@@ -34,24 +34,25 @@
 		<div id="global-reset" class="global-reset-box" style="display:none;"></div>
 	</div>
 	<div id="dashboard-grid"><div class="loader">Fetching data from server...</div></div>
+	<div id="custom-tooltip"></div>
 	<script>
-		const WebConfig = { columns: 3, minColumnWidth: "300px" };
 		let liveTimer;
-		window.onload = () => { setupGrid(); google.script.run.withSuccessHandler(renderData).getWebData(); };
-		
-		function setupGrid() {
-			const g = document.getElementById('dashboard-grid');
-			g.style.gridTemplateColumns = `repeat(auto-fit, minmax(min(100%, ${WebConfig.minColumnWidth}), 1fr))`;
-			if (window.innerWidth > 768) g.style.gridTemplateColumns = `repeat(${WebConfig.columns}, 1fr)`;
-		}
+		window.onload = () => {
+			const g = document.getElementById('dashboard-grid'), tt = document.getElementById('custom-tooltip');
+			g.style.gridTemplateColumns = `repeat(auto-fit, minmax(min(100%, 300px), 1fr))`;
+			if (window.innerWidth > 768) g.style.gridTemplateColumns = `repeat(3, 1fr)`;
+			
+			document.addEventListener('mouseover', e => { if (e.target.classList.contains('live-time') && e.target.dataset.full) { tt.innerText = e.target.dataset.full; tt.classList.add('show'); }});
+			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { tt.style.left = (e.clientX + 15) + 'px'; tt.style.top = (e.clientY + 15) + 'px'; }});
+			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time')) tt.classList.remove('show'); });
+			
+			google.script.run.withSuccessHandler(renderData).getWebData();
+		};
 		
 		const Utils = {
 			getEnergyTs: (c, m, s = 432e3) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3),
 			shn: (n, d = 2) => { let u = 0, x = +n, un = ["", "k", "m", "b"]; while (x >= 1e3 && u < 3) { x /= 1e3; u++; } return (Number.isInteger(x) ? x.toString() : x.toFixed(d).replace(/\.?0+$/, "")) + un[u]; },
-			formatRelativeTime: (t) => {
-				const d = (t - Date.now()) / 1e3, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
-				return a < 60 ? f(a|0, "sec") : a < 3600 ? f((a/60)|0, "min") : a < 864e2 ? f((a/3600)|0, "hour") : f((a/864e2)|0, "day");
-			}
+			formatRelativeTime: (t) => { const d = (t - Date.now()) / 1e3, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`; return a < 60 ? f(a|0, "sec") : a < 3600 ? f((a/60)|0, "min") : a < 864e2 ? f((a/3600)|0, "hour") : f((a/864e2)|0, "day"); }
 		};
 		
 		function renderData(data) {
@@ -59,41 +60,31 @@
 			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid');
 			
 			if (data.serverReset) {
-				const fR = (ts) => ts ? `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>` : `-`;
-				rEl.style.display = 'block';
-				rEl.innerHTML = `<div class="global-reset-header">Server Reset</div><div class="global-reset-grid"><div>🌸 Daily: ${fR(data.serverReset.daily)}</div><div>📅 Weekly: ${fR(data.serverReset.weekly)}</div><div>🗡️ Arsenal: ${fR(data.serverReset.arsenal)}</div><div>🌟 BP: ${fR(data.serverReset.bp)}</div></div>`;
+				const fR = ts => ts ? `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>` : `-`;
+				rEl.style.display = 'block'; rEl.innerHTML = `<div class="global-reset-header">Server Reset</div><div class="global-reset-grid"><div>🌸 Daily: ${fR(data.serverReset.daily)}</div><div>📅 Weekly: ${fR(data.serverReset.weekly)}</div><div>🗡️ Arsenal: ${fR(data.serverReset.arsenal)}</div><div>🌟 BP: ${fR(data.serverReset.bp)}</div></div>`;
 			} else rEl.style.display = 'none';
 			
-			g.innerHTML = '';
 			if (!data.accounts?.length) return g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
 			
-			data.accounts.forEach(a => {
-				const c = document.createElement('div'), sH = buildStatsHtml(a.playerCard), aU = a.playerCard?.base?.avatarUrl;
-				c.className = `card ${a.success ? 'success' : 'error'}`;
-				const rH = a.itemIcon_url?.length ? a.msg.split('\n').map((l, i) => a.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${a.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer" alt="Item"> `) : l).join('<br>') : a.msg.replace(/\n/g, '<br>');
-				c.innerHTML = `<div class="card-header">${aU ? `<img src="${aU}" class="avatar-img" referrerpolicy="no-referrer" alt="Avatar">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`} ${a.nickname} (${a.serverName})</div><div><div class="section-title">Status</div><div class="content-box">${a.status}</div></div><div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>${sH ? `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">${sH}</div></div>` : ''}`;
-				g.appendChild(c);
-			});
+			g.innerHTML = data.accounts.map(a => {
+				const c = a.playerCard, bs = c?.base, aU = bs?.avatarUrl, rH = a.itemIcon_url?.length ? a.msg.split('\n').map((l, i) => a.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${a.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer"> `) : l).join('<br>') : a.msg.replace(/\n/g, '<br>');
+				let sH = "";
+				if (bs) {
+					const dl = c.domain, dg = c.dungeon, en = +dg.curStamina, em = +dg.maxStamina; let aS = 0, aM = 0, aStr = "";
+					dl.forEach(d => {
+						const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length; aS += cur; aM += max;
+						const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
+						aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span class="timestamp">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
+					});
+					sH = `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${c.dailyMission.dailyActivation}/${c.dailyMission.maxDailyActivation}<br>📅 Weekly: ${c.weeklyMission.score}/${c.weeklyMission.total}<br>🌟 BP: ${c.bpSystem.curLevel}/${c.bpSystem.maxLevel}<br>⚡️ Energy: ${en}/${em}<br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp">Fulled</span>` : `<span class="live-time timestamp" data-ts="${Utils.getEnergyTs(en, v) * 1e3}"></span>`)).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}</div></div>`;
+				}
+				return `<div class="card ${a.success ? 'success' : 'error'}"><div class="card-header">${aU ? `<img src="${aU}" class="avatar-img" referrerpolicy="no-referrer">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`} ${a.nickname} (${a.serverName})</div><div><div class="section-title">Status</div><div class="content-box">${a.status}</div></div><div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>${sH}</div>`;
+			}).join('');
 			
-			if (liveTimer) clearInterval(liveTimer);
-			updateTimestamps();
-			liveTimer = setInterval(updateTimestamps, 1000);
+			if (liveTimer) clearInterval(liveTimer); updateTimestamps(); liveTimer = setInterval(updateTimestamps, 1000);
 		}
 		
-		function buildStatsHtml(c) {
-			if (!c?.base) return "";
-			const { base: bs, domain: dl, dungeon: dg, bpSystem: bp, dailyMission: dm, weeklyMission: wm } = c, en = +dg.curStamina, em = +dg.maxStamina;
-			let aS = 0, aM = 0, aStr = "";
-			dl.forEach(d => {
-				const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length;
-				aS += cur; aM += max;
-				const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
-				aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span class="timestamp" title="Fulled">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
-			});
-			return `🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>📅 Weekly: ${wm.score}/${wm.total}<br>🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>⚡️ Energy: ${en}/${em}<br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp" title="Fulled">Fulled</span>` : `<span class="live-time timestamp" data-ts="${Utils.getEnergyTs(en, v) * 1e3}"></span>`)).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}`;
-		}
-		
-		const updateTimestamps = () => document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) { el.innerText = Utils.formatRelativeTime(t); if (!el.title) el.title = new Date(t).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true }); } });
+		const updateTimestamps = () => document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) { el.innerText = Utils.formatRelativeTime(t); if (!el.dataset.full) el.dataset.full = new Date(t).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium', hour12: true }); } });
 	</script>
 </body>
 </html>
