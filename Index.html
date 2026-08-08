@@ -10,9 +10,9 @@
 		.header h1 { margin: 0; font-size: 24px; color: #fff; }
 		.header p { margin: 5px 0 0; color: var(--text-muted); font-size: 14px; }
 		.global-reset-box { max-width: 900px; margin: 16px auto 0; background-color: var(--card-bg); border-radius: 8px; padding: 16px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: left; }
-		.global-reset-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; text-align: left; }
+		.global-reset-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
 		.global-reset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-family: monospace; font-size: 13px; color: #a3a6aa; text-align: center; }
-		@media(max-width: 768px) { .global-reset-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+		@media(max-width: 768px) { .global-reset-grid { grid-template-columns: repeat(2, 1fr); } }
 		#dashboard-grid { display: grid; gap: 15px; }
 		.card { background-color: var(--card-bg); border-radius: 8px; border-left: 4px solid var(--discord-embed); padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 12px; }
 		.card.success { border-left-color: var(--success); }
@@ -21,7 +21,7 @@
 		.avatar-img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; background: #202225; }
 		.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
 		.content-box { font-size: 14px; line-height: 1.6; background: var(--bg-color); padding: 8px 12px; border-radius: 4px; }
-		.stats-box { font-size: 13px; line-height: 1.6; font-family: monospace; color: #a3a6aa; white-space: nowrap; }
+		.stats-box { font-size: 13px; font-family: monospace; color: #a3a6aa; white-space: nowrap; }
 		.timestamp { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; color: #fff; }
 		.inline-icon { width: 20px; height: 20px; border-radius: 4px; vertical-align: middle; margin-right: 6px; margin-bottom: 3px; }
 		.loader { text-align: center; color: var(--text-muted); padding: 50px; }
@@ -33,9 +33,7 @@
 		<p id="last-update">Loading...</p>
 		<div id="global-reset" class="global-reset-box" style="display:none;"></div>
 	</div>
-	<div id="dashboard-grid">
-		<div class="loader">Fetching data from server...</div>
-	</div>
+	<div id="dashboard-grid"><div class="loader">Fetching data from server...</div></div>
 	<script>
 		const WebConfig = { columns: 3, minColumnWidth: "300px" };
 		let liveTimer;
@@ -48,67 +46,32 @@
 		}
 		
 		const Utils = {
-			getEnergyTs: (c, m, s = 432000) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3),
-			shn: (n, d = 2) => {
-				let u = 0, x = +n, un = ["", "k", "m", "b"];
-				while (x >= 1000 && u < un.length - 1) { x /= 1000; u++; }
-				return (Number.isInteger(x) ? x.toString() : x.toFixed(d).replace(/\.?0+$/, "")) + un[u];
-			},
+			getEnergyTs: (c, m, s = 432e3) => Math.floor(c >= m ? Date.now() : (Math.ceil(Date.now() / s) * s + (m - c - 1) * s) / 1e3),
+			shn: (n, d = 2) => { let u = 0, x = +n, un = ["", "k", "m", "b"]; while (x >= 1e3 && u < 3) { x /= 1e3; u++; } return (Number.isInteger(x) ? x.toString() : x.toFixed(d).replace(/\.?0+$/, "")) + un[u]; },
 			formatRelativeTime: (t) => {
-				const d = (t - Date.now()) / 1000, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
-				if (a < 60) return f(a | 0, "sec");
-				if (a < 3600) return f((a / 60) | 0, "min");
-				if (a < 864e2) return f((a / 3600) | 0, "hour");
-				return f((a / 864e2) | 0, "day");
+				const d = (t - Date.now()) / 1e3, a = Math.abs(d), f = (n, u) => d > 0 ? `in ${n} ${u}${n > 1 ? "s" : ""}` : `${n} ${u}${n > 1 ? "s" : ""} ago`;
+				return a < 60 ? f(a|0, "sec") : a < 3600 ? f((a/60)|0, "min") : a < 864e2 ? f((a/3600)|0, "hour") : f((a/864e2)|0, "day");
 			}
 		};
 		
 		function renderData(data) {
 			document.getElementById('last-update').innerText = `Last Update: ${new Date(data.updatedAt).toLocaleString()}`;
+			const rEl = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid');
 			
-			const resetEl = document.getElementById('global-reset');
 			if (data.serverReset) {
-				const fmtRst = (ts) => ts ? `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>` : `-`;
-				resetEl.style.display = 'block';
-				resetEl.innerHTML = `
-					<div class="global-reset-header">Server Reset</div>
-					<div class="global-reset-grid">
-						<div>🌸 Daily: ${fmtRst(data.serverReset.daily)}</div>
-						<div>📅 Weekly: ${fmtRst(data.serverReset.weekly)}</div>
-						<div>🗡️ Arsenal: ${fmtRst(data.serverReset.arsenal)}</div>
-						<div>🌟 BP: ${fmtRst(data.serverReset.bp)}</div>
-					</div>
-				`;
-			} else {
-				resetEl.style.display = 'none';
-			}
+				const fR = (ts) => ts ? `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>` : `-`;
+				rEl.style.display = 'block';
+				rEl.innerHTML = `<div class="global-reset-header">Server Reset</div><div class="global-reset-grid"><div>🌸 Daily: ${fR(data.serverReset.daily)}</div><div>📅 Weekly: ${fR(data.serverReset.weekly)}</div><div>🗡️ Arsenal: ${fR(data.serverReset.arsenal)}</div><div>🌟 BP: ${fR(data.serverReset.bp)}</div></div>`;
+			} else rEl.style.display = 'none';
 			
-			const g = document.getElementById('dashboard-grid');
 			g.innerHTML = '';
-			if (!data.accounts || data.accounts.length === 0) {
-				g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
-				return;
-			}
+			if (!data.accounts?.length) return g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
 			
-			data.accounts.forEach(acc => {
-				const c = document.createElement('div');
-				c.className = `card ${acc.success ? 'success' : 'error'}`;
-				let rH = acc.msg;
-				if (acc.itemIcon_url && acc.itemIcon_url.length > 0) {
-					rH = acc.msg.split('\n').map((l, i) => acc.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${acc.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer" alt="Item"> `) : l).join('<br>');
-				} else {
-					rH = rH.replace(/\n/g, '<br>');
-				}
-				const sH = buildStatsHtml(acc.playerCard);
-				const avatarUrl = acc.playerCard?.base?.avatarUrl || '';
-				const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="avatar-img" referrerpolicy="no-referrer" alt="Avatar">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`;
-				
-				c.innerHTML = `
-					<div class="card-header">${avatarHtml} ${acc.nickname} (${acc.serverName})</div>
-					<div><div class="section-title">Status</div><div class="content-box">${acc.status}</div></div>
-					<div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>
-					${sH ? `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">${sH}</div></div>` : ''}
-				`;
+			data.accounts.forEach(a => {
+				const c = document.createElement('div'), sH = buildStatsHtml(a.playerCard), aU = a.playerCard?.base?.avatarUrl;
+				c.className = `card ${a.success ? 'success' : 'error'}`;
+				const rH = a.itemIcon_url?.length ? a.msg.split('\n').map((l, i) => a.itemIcon_url[i] ? l.replace(/🎁\s*/, `<img src="${a.itemIcon_url[i]}" class="inline-icon" referrerpolicy="no-referrer" alt="Item"> `) : l).join('<br>') : a.msg.replace(/\n/g, '<br>');
+				c.innerHTML = `<div class="card-header">${aU ? `<img src="${aU}" class="avatar-img" referrerpolicy="no-referrer" alt="Avatar">` : `<div class="avatar-img" style="display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>`} ${a.nickname} (${a.serverName})</div><div><div class="section-title">Status</div><div class="content-box">${a.status}</div></div><div><div class="section-title">Response</div><div class="content-box">${rH}</div></div>${sH ? `<div><div class="section-title">Player Stats</div><div class="content-box stats-box">${sH}</div></div>` : ''}`;
 				g.appendChild(c);
 			});
 			
@@ -117,37 +80,20 @@
 			liveTimer = setInterval(updateTimestamps, 1000);
 		}
 		
-		function buildStatsHtml(card) {
-			if (!card || !card.base) return "";
-			const { base: bs, domain: dl, dungeon: dg, bpSystem: bp, dailyMission: dm, weeklyMission: wm } = card;
-			const en = +dg.curStamina, em = +dg.maxStamina;
-			let aSum = 0, aMax = 0, aStr = "";
+		function buildStatsHtml(c) {
+			if (!c?.base) return "";
+			const { base: bs, domain: dl, dungeon: dg, bpSystem: bp, dailyMission: dm, weeklyMission: wm } = c, en = +dg.curStamina, em = +dg.maxStamina;
+			let aS = 0, aM = 0, aStr = "";
 			dl.forEach(d => {
-				const s = d.settlements.filter(x => +x.level > 0);
-				const cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length;
+				const s = d.settlements.filter(x => +x.level > 0), cur = s.reduce((a, x) => a + +x.remainMoney, 0), max = s.reduce((a, x) => a + +x.moneyMax, 0), fd = s.filter(x => +x.remainMoney === +x.moneyMax).length;
+				aS += cur; aM += max;
 				const rL = s.map((x, i) => `&emsp;&emsp;[${i + 1}]: ${Utils.shn(x.remainMoney)}/${Utils.shn(x.moneyMax)}`).join("<br>");
-				aSum += cur; aMax += max;
-				let fS = (s.length > 0 && fd === s.length) ? '<span class="timestamp">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%';
-				aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${fS}`;
-				if (rL) aStr += `<br>${rL}`;
+				aStr += `<br>&emsp;→ ${d.name.trim().split(/\s+/)[0]} [${fd}/${s.length}]: ${s.length && fd === s.length ? '<span class="timestamp">Fulled</span>' : (max ? ((cur / max) * 100).toFixed(2) : "0.00") + '%'}${rL ? `<br>${rL}` : ""}`;
 			});
-			const fT = aMax ? ((aSum / aMax) * 100).toFixed(2) : "0.00";
-			
-			return `🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1000}"></span><br>` +
-				`🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>` +
-				`📅 Weekly: ${wm.score}/${wm.total}<br>` +
-				`🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>` +
-				`⚡️ Energy: ${en}/${em}<br>` +
-				`${[160, 200, 240, em].map(v => { const ts = Utils.getEnergyTs(en, v); return `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp">Fulled</span>` : `<span class="live-time timestamp" data-ts="${ts * 1000}"></span>`); }).join('<br>')}<br>` +
-				`🏠 AIC Funds: ${fT}%${aStr}`;
+			return `🔑 Login: <span class="live-time timestamp" data-ts="${bs.lastLoginTime * 1e3}"></span><br>🌸 Daily: ${dm.dailyActivation}/${dm.maxDailyActivation}<br>📅 Weekly: ${wm.score}/${wm.total}<br>🌟 BP: ${bp.curLevel}/${bp.maxLevel}<br>⚡️ Energy: ${en}/${em}<br>${[160, 200, 240, em].map(v => `&emsp;→ ${v}: ` + (en >= v ? `<span class="timestamp">Fulled</span>` : `<span class="live-time timestamp" data-ts="${Utils.getEnergyTs(en, v) * 1e3}"></span>`)).join('<br>')}<br>🏠 AIC Funds: ${aM ? ((aS / aM) * 100).toFixed(2) : "0.00"}%${aStr}`;
 		}
 		
-		function updateTimestamps() {
-			document.querySelectorAll('.live-time').forEach(el => {
-				const t = parseInt(el.getAttribute('data-ts'));
-				if (t) el.innerText = Utils.formatRelativeTime(t);
-			});
-		}
+		const updateTimestamps = () => document.querySelectorAll('.live-time').forEach(el => { const t = parseInt(el.getAttribute('data-ts')); if (t) el.innerText = Utils.formatRelativeTime(t); });
 	</script>
 </body>
 </html>
