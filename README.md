@@ -57,4 +57,15 @@
 8. If prompted, review and authorize the required permissions.
 9. After deployment is complete, copy the Web app URL.
 10. Open the URL in your browser to access your Web App.
-    **Note:** If you make changes to your code after deployment, you may need to create a new deployment version or update the existing deployment for the changes to take effect.
+11. If you make changes to your code after deployment, you may need to create a new deployment version or update the existing deployment for the changes to take effect.
+
+
+**Delete a Deployment Version**
+1. Click Deploy in the top-right corner of the Google Apps Script editor.
+2. Select Manage deployments.
+3. Find the deployment that you want to remove and Archive it.
+4. In the left sidebar, select Project History.
+5. On the right side, you will see the available project versions.
+6. Find the version you want to delete.
+7. Click the ⋮ (More) button next to the version.
+8. Select Delete to remove the version.
