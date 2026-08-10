@@ -22,9 +22,9 @@
 			let g = document.getElementById('dashboard-grid');
 			tt = document.getElementById('custom-tooltip');
 			g.style.gridTemplateColumns = window.innerWidth > 768 ? `repeat(3, 1fr)` : `repeat(auto-fit, minmax(min(100%, 300px), 1fr))`;
-			document.addEventListener('mouseover', e => { let E = e.target.closest('.energy-hover'), T = e.target; if (E?.dataset.ets) { activeHover = E; tt.innerText = `Next energy: ${U.fCD(Math.max(0, (+E.dataset.ets - Date.now()) / 1000))}`; tt.classList.add('show'); } else if (T.classList.contains('live-time') && T.dataset.full) { tt.innerText = T.dataset.full; tt.classList.add('show'); } });
+			document.addEventListener('mouseover', e => { let E = e.target.closest('.energy-hover'), T = e.target; if (E?.dataset.ets) { activeHover = E; tt.innerText = `Next energy: ${U.fCD(Math.max(0, (+E.dataset.ets - Date.now()) / 1000))}`; tt.classList.add('show'); } else if (T.classList.contains('live-time') && T.dataset.full) { tt.innerText = T.dataset.full; tt.classList.add('show'); } else if (T.classList.contains('time-ago-hover')) { tt.innerText = U.fmt(+T.dataset.ts); tt.classList.add('show'); } });
 			document.addEventListener('mousemove', e => { if (tt.classList.contains('show')) { let x = e.clientX+15, y = e.clientY+15; tt.style.left = (x+tt.offsetWidth>window.innerWidth?Math.max(5,e.clientX-tt.offsetWidth-10):x)+'px'; tt.style.top = (y+tt.offsetHeight>window.innerHeight?Math.max(5,e.clientY-tt.offsetHeight-10):y)+'px'; } });
-			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover')) { tt.classList.remove('show'); activeHover = null; } });
+			document.addEventListener('mouseout', e => { if (e.target.classList.contains('live-time') || e.target.closest('.energy-hover') || e.target.classList.contains('time-ago-hover')) { tt.classList.remove('show'); activeHover = null; } });
 			google.script.run.withSuccessHandler(rD).getWebData();
 		};
 		const uT_fn = () => {
@@ -40,8 +40,8 @@
 		};
 		const rD = d => {
 			U.tz = d.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
-			document.getElementById('last-update').innerText = `Last Update: ${new Date(d.updatedAt).toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium',hour12:true, timeZone: U.tz})}`;
 			let r = document.getElementById('global-reset'), g = document.getElementById('dashboard-grid'), uT = new Date(d.updatedAt).getTime(), fR = t => t ? `<span class="live-time" data-ts="${t*1e3}"></span>` : `-`;
+			document.getElementById('last-update').innerHTML = `Last Update: <span class="time-ago-hover" data-ts="${uT}" style="cursor:pointer">${new Date(uT).toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium',hour12:true, timeZone: U.tz})}</span>`;
 			if (d.serverReset) { r.style.display = 'block'; r.innerHTML = `<div class="global-reset-header">Server Reset</div><div class="global-reset-grid"><div>🌸 Daily: ${fR(d.serverReset.daily)}</div><div>📅 Weekly: ${fR(d.serverReset.weekly)}</div><div>🗡️ Arsenal: ${fR(d.serverReset.arsenal)}</div><div>🌟 BP: ${fR(d.serverReset.bp)}</div></div>`; } else r.style.display = 'none';
 			if (!d.accounts?.length) return g.innerHTML = '<div class="loader">No data available. Please run the script first.</div>';
 			g.innerHTML = d.accounts.map(a => {
